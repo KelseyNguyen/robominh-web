@@ -90,11 +90,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .typing-cursor{display:inline-block;width:2px;height:14px;background:var(--pri);margin-left:2px;animation:blink .7s ease-in-out infinite;vertical-align:middle;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 /* Touch button */
-.touch-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--pri);background:var(--priL);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:14px;transition:all .2s;font-size:24px;box-shadow:0 0 20px rgba(0,212,255,.2);}
-.touch-btn:active{transform:scale(.9);}
-.touch-btn.listening{border-color:var(--red);background:rgba(255,68,102,.12);box-shadow:0 0 20px rgba(255,68,102,.3);animation:ripple 1s ease-in-out infinite;}
-.touch-btn.speaking{border-color:var(--grn);background:rgba(0,255,136,.1);box-shadow:0 0 20px rgba(0,255,136,.25);}
-@keyframes ripple{0%,100%{box-shadow:0 0 20px rgba(255,68,102,.3)}50%{box-shadow:0 0 35px rgba(255,68,102,.6),0 0 50px rgba(255,68,102,.2)}}
+/* touch-btn removed */
 .touch-hint{font-size:10px;color:var(--dim);margin-top:6px;text-align:center;}
 
 /* ═══ RIGHT — PRODUCTS/INFO ═══ */
@@ -216,8 +212,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
         Xin chào! Tôi là trợ lý AI của Robominh.<br>Tôi có thể giúp gì cho bạn?
       </div>
 
-      <div class="touch-btn" id="touchBtn" onclick="toggleListen()">🎤</div>
-      <div class="touch-hint" id="touchHint">Chạm để nói • Chạm lại để dừng</div>
+      <!-- Không có nút chạm — tự động hoàn toàn -->
+      <div id="touchHint" style="font-size:11px;color:rgba(0,212,255,.5);letter-spacing:1px;text-transform:uppercase;margin-top:10px">Đang lắng nghe...</div>
     </div>
 
     <!-- RIGHT: PRODUCTS/INFO -->
@@ -321,8 +317,18 @@ async function initAll() {
   await new Promise(r => setTimeout(r, 800));
   document.getElementById('loadScr').classList.add('hide');
 
+  // Auto start listening ngay
+  setTimeout(() => {
+    _startListenLoop();
+    setTouchBtn('listening', '🎤');
+    setStatus('Đang lắng nghe', '#00FF88');
+  }, 500);
+
   // Chào mừng ban đầu
-  setTimeout(() => speak('Xin chào! Tôi là trợ lý AI lễ tân của Robominh. Tôi có thể giúp gì cho bạn hôm nay?'), 500);
+  setTimeout(() => {
+    resetContext();
+    speak('Xin chào! Tôi là trợ lý AI lễ tân của Robominh. Tôi có thể giúp gì cho bạn?');
+  }, 1200);
   startFaceLoop();
 }
 
@@ -461,8 +467,9 @@ async function detectFaces() {
       const now = Date.now();
       if ((now - S.lastDetected > S.cooldown || S.lastDetectedId !== best.id) && !S.speaking && !S.listening) {
         S.lastDetected = now; S.lastDetectedId = best.id;
+        resetContext(); // Reset hội thoại cho khách mới
         if (best.role === 'employee') greetEmployee(best.name, best.dept);
-        else greetKnownGuest(best.name);
+        else greetKnownGuest(best.name, best.id);
         addRecent(best.name, best.role === 'employee' ? '👔' : '🧑');
       }
     } else {
@@ -487,27 +494,140 @@ function hideFaceDetected() {
    GREETINGS
 ══════════════════════════════════ */
 function greetEmployee(name, dept) {
+  // Set context
+  CTX.guestName = name; CTX.askedName = true;
+  S.convo = []; CTX.turnCount = 0;
+  const h = new Date().getHours();
+  const timeGreet = h < 12 ? 'buổi sáng' : h < 18 ? 'buổi chiều' : 'buổi tối';
   const greetings = [
-    `Chào ${name}! Chúc bạn một ngày làm việc hiệu quả và tràn đầy năng lượng!`,
-    `Xin chào ${name}! Hôm nay trông bạn rất tươi tắn. Chúc bạn ngày mới tốt lành nhé!`,
-    `Chào buổi sáng ${name}! Chúc bạn một ngày làm việc thật suôn sẻ và thành công!`,
+    `Chào ${timeGreet} ${name}! Chúc bạn ngày làm việc thật hiệu quả nhé!`,
+    `Xin chào ${name}! Trông bạn hôm nay thật tươi tắn. Chúc ngày mới tốt lành!`,
+    `Chào ${name}! Bạn đến sớm thế! Chúc bạn một ngày suôn sẻ và thành công nhé.`,
   ];
-  const msg = greetings[Math.floor(Math.random() * greetings.length)];
-  speak(msg); setEmotion('happy');
+  speak(greetings[Math.floor(Math.random()*greetings.length)]); setEmotion('happy');
 }
-function greetKnownGuest(name) {
+function greetKnownGuest(name, guestId) {
+  // Set context  
+  CTX.guestName = name; CTX.guestId = guestId||null; CTX.askedName = true;
+  S.convo = []; CTX.turnCount = 0;
+  if (guestId) { try { fetch(CFG.SERVER+'/api/guest/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:guestId})}); } catch(e){} }
   const greetings = [
-    `Xin chào ${name}! Rất vui được gặp lại bạn. Tôi có thể giúp gì cho bạn hôm nay?`,
-    `Chào mừng trở lại, ${name}! Hôm nay bạn cần hỗ trợ gì ạ?`,
+    `Xin chào ${name}! Rất vui được gặp lại bạn. Hôm nay tôi có thể giúp gì cho bạn?`,
+    `Chào ${name}! Lại ghé thăm rồi, cảm ơn bạn đã tin tưởng. Bạn cần hỗ trợ gì không?`,
   ];
-  speak(greetings[Math.floor(Math.random() * greetings.length)]); setEmotion('happy');
+  speak(greetings[Math.floor(Math.random()*greetings.length)]); setEmotion('happy');
 }
+// State lưu tạm khi đăng ký khách
+let _pendingDesc = null, _pendingPhoto = null, _pendingName = '';
+
 function greetUnknownGuest() {
-  const greetings = [
-    'Xin chào! Chào mừng bạn đến với Robominh! Tôi là trợ lý AI lễ tân. Tôi có thể giúp gì cho bạn ạ?',
-    'Xin chào quý khách! Chào mừng đến với Robominh. Bạn cần tìm hiểu về sản phẩm hay dịch vụ gì không?',
-  ];
-  speak(greetings[Math.floor(Math.random() * greetings.length)]); setEmotion('happy');
+  setEmotion('happy');
+  speak('Xin chào! Chào mừng bạn đến với Robominh! Tôi chưa gặp bạn lần nào. Bạn có thể cho tôi biết tên không?');
+  capturePendingFace();
+  setTimeout(() => showNameForm(), 3000);
+}
+
+async function capturePendingFace() {
+  if (!S.faceReady) return;
+  try {
+    const vid = document.getElementById('camVid');
+    const det = await faceapi.detectSingleFace(vid, new faceapi.SsdMobilenetv1Options({minConfidence:0.5})).withFaceLandmarks().withFaceDescriptor();
+    if (det) {
+      _pendingDesc = Array.from(det.descriptor);
+      const cvs = document.createElement('canvas'); cvs.width=120; cvs.height=120;
+      const ctx = cvs.getContext('2d'); ctx.scale(-1,1); ctx.drawImage(vid,-120,0,120,120);
+      _pendingPhoto = cvs.toDataURL('image/jpeg',0.7);
+    }
+  } catch(e) {}
+}
+
+function showNameForm() {
+  if (S.speaking) { setTimeout(showNameForm, 1000); return; }
+  const ov = document.getElementById('keyboardOverlay');
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <div style="text-align:center;color:#fff;margin-bottom:4px">
+      <div style="font-size:40px;margin-bottom:8px">👋</div>
+      <div style="font-size:20px;font-weight:800;background:linear-gradient(135deg,#00D4FF,#AA55FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Xin chào! Bạn tên gì?</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:5px">Nói tên hoặc nhập bên dưới</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input id="inp_name" type="text" placeholder="Nhập tên của bạn..."
+        style="background:rgba(255,255,255,.1);border:1px solid rgba(0,212,255,.4);border-radius:10px;padding:12px 16px;font-size:15px;color:#fff;outline:none;width:260px;font-family:inherit;"
+        onkeydown="if(event.key==='Enter')goStep2()">
+      <button onclick="goStep2()" style="background:linear-gradient(135deg,#00D4FF,#AA55FF);border:none;border-radius:10px;padding:12px 18px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Tiếp →</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="listenName()" id="listenNameBtn" style="background:rgba(255,68,102,.2);border:1px solid rgba(255,68,102,.4);border-radius:8px;padding:8px 14px;color:#FF4466;font-size:12px;font-weight:600;cursor:pointer">🎤 Nói tên</button>
+      <button onclick="skipGuest()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,.55);font-size:12px;cursor:pointer">Bỏ qua</button>
+    </div>
+    <div id="listenHint" style="font-size:11px;color:rgba(0,212,255,.7);min-height:16px"></div>
+  `;
+  document.getElementById('inp_name')?.focus();
+}
+
+function goStep2() {
+  const name = document.getElementById('inp_name')?.value.trim();
+  if (!name) return;
+  _pendingName = name;
+  const ov = document.getElementById('keyboardOverlay');
+  ov.innerHTML = `
+    <div style="text-align:center;color:#fff;margin-bottom:4px">
+      <div style="font-size:32px;margin-bottom:6px">📋</div>
+      <div style="font-size:17px;font-weight:800;color:#00D4FF">Xin chào ${name}!</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:4px">Thêm thông tin để chúng tôi phục vụ tốt hơn</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;width:300px">
+      <input id="inp_company" type="text" placeholder="🏢 Công ty / Đơn vị..."
+        style="background:rgba(255,255,255,.1);border:1px solid rgba(0,212,255,.3);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;">
+      <input id="inp_phone" type="tel" placeholder="📞 Số điện thoại..."
+        style="background:rgba(255,255,255,.1);border:1px solid rgba(0,212,255,.3);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;"
+        onkeydown="if(event.key==='Enter')saveNewGuest()">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="saveNewGuest()" style="background:linear-gradient(135deg,#00D4FF,#AA55FF);border:none;border-radius:10px;padding:11px 22px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">💾 Lưu & Tiếp tục</button>
+      <button onclick="saveNewGuest(true)" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 16px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer">Bỏ qua</button>
+    </div>
+  `;
+  document.getElementById('inp_company')?.focus();
+}
+
+async function saveNewGuest(skipExtra=false) {
+  const company = skipExtra ? '' : (document.getElementById('inp_company')?.value.trim()||'');
+  const phone   = skipExtra ? '' : (document.getElementById('inp_phone')?.value.trim()||'');
+  document.getElementById('keyboardOverlay').style.display = 'none';
+  try {
+    const r = await fetch(CFG.SERVER + '/api/guest/register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name:_pendingName, company, phone, descriptor:_pendingDesc, photo:_pendingPhoto })
+    });
+    const d = await r.json();
+    if (d.success) {
+      S.lastDetectedId = d.id;
+      await loadFaceData(); await buildMatchers();
+      addRecent(_pendingName, '🧑');
+    }
+  } catch(e) {}
+  const extra = company ? ' đến từ ' + company : '';
+  speak('Rất vui được gặp bạn, ' + _pendingName + extra + '! Lần sau tôi sẽ nhận ra bạn ngay. Tôi có thể giúp gì cho bạn hôm nay?');
+  setEmotion('happy');
+  _pendingDesc = null; _pendingPhoto = null; _pendingName = '';
+}
+
+function skipGuest() {
+  document.getElementById('keyboardOverlay').style.display = 'none';
+  speak('Không sao! Tôi có thể giúp gì cho bạn hôm nay?');
+}
+
+function listenName() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const rec = new SR(); rec.lang='vi-VN'; rec.continuous=false; rec.interimResults=false;
+  rec.onstart = () => { document.getElementById('listenNameBtn').textContent='🔴 Đang nghe...'; document.getElementById('listenHint').textContent='Hãy nói tên của bạn...'; };
+  rec.onresult = e => { const name=e.results[0][0].transcript.trim(); document.getElementById('inp_name').value=name; document.getElementById('listenHint').textContent='✅ Nghe được: '+name; };
+  rec.onend = () => { document.getElementById('listenNameBtn').textContent='🎤 Nói tên'; };
+  rec.onerror = () => { document.getElementById('listenNameBtn').textContent='🎤 Nói tên'; document.getElementById('listenHint').textContent='⚠️ Không nghe rõ, thử lại'; };
+  rec.start();
 }
 function addRecent(name, icon) {
   const list = document.getElementById('recentList');
@@ -520,52 +640,108 @@ function addRecent(name, icon) {
 }
 
 /* ══════════════════════════════════
-   VOICE — SPEECH RECOGNITION
+   CONVERSATIONAL ENGINE
+   - Luôn luôn lắng nghe
+   - Khách nói bất cứ lúc nào
+   - Ngắt lời AI được
+   - Không cần nhấn nút
 ══════════════════════════════════ */
+let _convRestarting = false;
+let _silenceTimer = null;
+let _interimBuffer = '';
+let _convStarted = false;
+
 function initSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { showNotif('⚠️ Trình duyệt không hỗ trợ giọng nói'); return; }
+  _startListenLoop();
+}
+
+function _startListenLoop() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || _convRestarting) return;
+
   S.recognition = new SR();
   S.recognition.lang = CFG.LANG;
-  S.recognition.continuous = false;
+  S.recognition.continuous = true;   // Nghe liên tục
   S.recognition.interimResults = true;
   S.recognition.maxAlternatives = 1;
 
   S.recognition.onstart = () => {
-    S.listening = true; setEmotion('listening');
-    setState('Đang nghe...'); setTouchBtn('listening', '🔴');
-    setStatus('Đang nghe', '#FF4466');
-  };
-  S.recognition.onresult = (e) => {
-    const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
-    if (e.results[e.results.length-1].isFinal) {
-      // Ngắt lời nếu đang nói
-      if (S.speaking) { stopSpeaking(); }
-      processUserInput(transcript);
-    } else {
-      setAvatarText('🎤 "' + transcript + '"');
+    S.listening = true;
+    if (!S.speaking) {
+      setStatus('Đang lắng nghe', '#00FF88');
+      if (!_convStarted) setState('Hãy bắt đầu nói...');
     }
   };
-  S.recognition.onerror = (e) => {
-    if (e.error !== 'no-speech' && e.error !== 'aborted') showNotif('⚠️ Lỗi nhận dạng: ' + e.error);
-    stopListening();
+
+  S.recognition.onresult = (e) => {
+    let interim = '';
+    let final_transcript = '';
+
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final_transcript += e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+
+    // Hiện interim (đang nói dở)
+    if (interim) {
+      _interimBuffer = interim;
+      // Nếu AI đang nói và khách bắt đầu nói → dừng ngay
+      if (S.speaking && interim.length > 2) {
+        stopSpeaking();
+        setStatus('Ngắt lời — đang nghe...', '#FF4466');
+      }
+      if (!S.speaking) setAvatarText('🎤 ' + interim + '...');
+    }
+
+    // Khi có kết quả cuối
+    if (final_transcript.trim()) {
+      _interimBuffer = '';
+      clearTimeout(_silenceTimer);
+      if (S.speaking) stopSpeaking();
+      processUserInput(final_transcript.trim());
+    }
   };
-  S.recognition.onend = () => { stopListening(); };
+
+  S.recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      // Bình thường — không có tiếng → restart
+    } else if (e.error !== 'aborted') {
+      console.warn('Speech error:', e.error);
+    }
+  };
+
+  S.recognition.onend = () => {
+    S.listening = false;
+    // Tự động restart để nghe tiếp
+    if (!_convRestarting) {
+      _convRestarting = true;
+      setTimeout(() => {
+        _convRestarting = false;
+        if (!document.getElementById('keyboardOverlay').style.display || document.getElementById('keyboardOverlay').style.display === 'none') {
+          _startListenLoop();
+        }
+      }, 300);
+    }
+  };
+
+  try { S.recognition.start(); } catch(e) {
+    setTimeout(_startListenLoop, 1000);
+  }
 }
 
+// toggleListen - chỉ dùng nội bộ, không có nút
 function toggleListen() {
-  if (S.listening) stopListening();
-  else if (S.speaking) { stopSpeaking(); setTimeout(startListening, 300); }
-  else startListening();
+  if (S.speaking) stopSpeaking();
 }
-function startListening() {
-  if (!S.recognition || S.listening) return;
-  try { S.recognition.start(); } catch(e) {}
-}
+
 function stopListening() {
   S.listening = false;
-  if (S.recognition) { try { S.recognition.stop(); } catch(e) {} }
-  if (!S.speaking) { setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('', '🎤'); setStatus('Sẵn sàng', '#00FF88'); }
+  try { if (S.recognition) S.recognition.stop(); } catch(e) {}
 }
 
 /* ══════════════════════════════════
@@ -592,7 +768,7 @@ function speak(text) {
                 || voices.find(v => v.name.includes('Google') && v.lang.includes('vi'));
   if (viVoice) utter.voice = viVoice;
 
-  utter.onend = () => { S.speaking = false; setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('','🎤'); setStatus('Sẵn sàng','#00FF88'); };
+  utter.onend = () => { S.speaking = false; setEmotion('idle'); setState('Đang lắng nghe...'); setTouchBtn('','🎤'); setStatus('Sẵn sàng','#00FF88'); };
   utter.onerror = () => { S.speaking = false; setEmotion('idle'); };
 
   S.currentUtter = utter;
@@ -602,67 +778,170 @@ function speak(text) {
 function stopSpeaking() {
   S.speaking = false; S.synth.cancel();
   stopWaveAnimation();
-  setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('','🎤');
+  setEmotion('idle'); setState('Đang lắng nghe...'); setTouchBtn('','🎤');
 }
 
 /* ══════════════════════════════════
-   AI — GROQ CHAT
+   CONVERSATIONAL AI — GROQ
+   - Thông minh, tự nhiên
+   - Tự hỏi tên khi chưa biết
+   - Nhớ ngữ cảnh hội thoại
+   - Ghi nhớ khách
 ══════════════════════════════════ */
-async function processUserInput(text) {
-  if (!text.trim()) return;
-  addConv('user', text);
-  setEmotion('thinking'); setState('Đang suy nghĩ...');
 
-  // Kiểm tra kịch bản cứng trước
+// Context hội thoại hiện tại
+const CTX = {
+  guestName: '',      // Tên khách hiện tại
+  guestId: null,      // ID khách đã biết
+  askedName: false,   // Đã hỏi tên chưa
+  turnCount: 0,       // Số lượt hội thoại
+};
+
+function resetContext() {
+  CTX.guestName = ''; CTX.askedName = false; CTX.turnCount = 0;
+  S.convo = [];
+}
+
+async function processUserInput(text) {
+  if (!text.trim() || text.length < 2) return;
+  _convStarted = true;
+  CTX.turnCount++;
+
+  // Trích xuất tên từ lời khách nếu AI đã hỏi
+  if (CTX.askedName && !CTX.guestName) {
+    const extractedName = extractNameFromText(text);
+    if (extractedName) {
+      CTX.guestName = extractedName;
+      await saveGuestName(extractedName);
+    }
+  }
+
+  addConv('user', text);
+  setEmotion('thinking'); setState('Đang xử lý...');
+  setStatus('Đang suy nghĩ', '#AA55FF');
+
+  // Kiểm tra kịch bản cứng
   const scenario = matchScenario(text);
   if (scenario) {
-    checkProductMention(scenario.response);
-    speak(scenario.response);
-    addConv('ai', scenario.response);
-    return;
+    let reply = scenario.response;
+    if (CTX.guestName) reply = reply.replace('[TÊN]', CTX.guestName);
+    if (scenario.product) showProduct(scenario.product);
+    else checkProductMention(reply);
+    speak(reply); addConv('ai', reply); return;
   }
 
-  // Gọi Groq AI
   const key = S.groqKey || localStorage.getItem('groq_key') || '';
-  if (!key) {
-    const fallback = 'Xin lỗi, tôi chưa được kết nối với AI. Vui lòng liên hệ quản trị viên.';
-    speak(fallback); addConv('ai', fallback); return;
-  }
+  if (!key) { speak('Xin lỗi, hệ thống AI chưa sẵn sàng.'); return; }
 
-  // Xây dựng system prompt từ kiến thức
-  const knowledgeStr = S.knowledge.map(k => k.content).join('\n');
-  const productStr   = S.products.map(p => `Sản phẩm: ${p.name} - ${p.desc} - Giá: ${p.price}`).join('\n');
-  const systemPrompt = `Bạn là trợ lý AI lễ tân của công ty Robominh. Trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa 2-3 câu), chuyên nghiệp.
-Thông tin công ty: ${knowledgeStr}
-Sản phẩm/Dịch vụ: ${productStr}
-Khi nhắc đến sản phẩm cụ thể, thêm thẻ [PRODUCT:tên_sản_phẩm] vào cuối câu.
-Không bịa thông tin. Nếu không biết, đề nghị gặp nhân viên phụ trách.`;
+  // Build system prompt thông minh
+  const knowledgeStr = S.knowledge.slice(0,10).map(k=>`[${k.title}]: ${k.content}`).join('\n');
+  const productStr   = S.products.map(p=>`${p.name}: ${p.desc||''} ${p.price?'- Giá: '+p.price:''}`).join('\n');
+  const guestCtx     = CTX.guestName ? `Tên khách đang nói chuyện: ${CTX.guestName}.` : 'Chưa biết tên khách.';
+  const langHint     = detectLanguage(text) === 'en' ? 'Khách đang nói tiếng Anh — hãy trả lời bằng tiếng Anh.' : 'Trả lời bằng tiếng Việt.';
 
-  S.convo.push({ role: 'user', content: text });
-  if (S.convo.length > 10) S.convo.splice(0, 2);
+  const systemPrompt = `Bạn là trợ lý AI lễ tân thông minh của công ty Robominh. Hãy giao tiếp TỰ NHIÊN như người thật.
+
+NGUYÊN TẮC QUAN TRỌNG:
+- ${langHint}
+- Câu trả lời ngắn gọn, tự nhiên (1-3 câu), KHÔNG cứng nhắc
+- ${CTX.guestName ? `Xưng hô với khách bằng tên: ${CTX.guestName}` : 'Nếu khách chưa tự giới thiệu sau 2-3 lượt, hãy hỏi tên một cách tự nhiên'}
+- Nếu khách đề cập tên hoặc thông tin cá nhân, ghi nhận và xưng hô đúng
+- Nếu không biết thông tin, thành thật nói không biết và đề nghị gặp nhân viên
+- Khi đề cập sản phẩm cụ thể, thêm [PRODUCT:tên] cuối câu
+- Lượt hội thoại hiện tại: ${CTX.turnCount}
+
+THÔNG TIN CÔNG TY:
+${knowledgeStr || 'Công ty Robominh - chuyên sản xuất và cung cấp giải pháp công nghệ'}
+
+SẢN PHẨM/DỊCH VỤ:
+${productStr || 'Liên hệ nhân viên để biết thêm chi tiết'}
+
+${guestCtx}`;
+
+  S.convo.push({ role:'user', content:text });
+  if (S.convo.length > 16) S.convo.splice(0, 2);
 
   try {
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [{ role:'system', content:systemPrompt }, ...S.convo],
-        temperature: 0.7, max_tokens: 200
+        temperature: 0.75, max_tokens: 180
       })
     });
     const d = await r.json();
-    let reply = d.choices?.[0]?.message?.content || 'Xin lỗi, tôi không hiểu. Bạn có thể nói lại không?';
+    if (d.error) throw new Error(d.error.message);
+    let reply = d.choices?.[0]?.message?.content?.trim() || 'Xin lỗi, bạn có thể nói lại không?';
     S.convo.push({ role:'assistant', content:reply });
-    // Xử lý product tag
-    const prodMatch = reply.match(/\[PRODUCT:([^\]]+)\]/);
-    if (prodMatch) { reply = reply.replace(/\[PRODUCT:[^\]]+\]/g,'').trim(); showProduct(prodMatch[1]); }
+
+    // Xử lý PRODUCT tag
+    const prodMatch = reply.match(/\[PRODUCT:([^\]]+)\]/i);
+    if (prodMatch) { reply = reply.replace(/\[PRODUCT:[^\]]+\]/gi,'').trim(); showProduct(prodMatch[1]); }
     else checkProductMention(reply);
+
+    // Tự động hỏi tên sau 2 lượt
+    if (!CTX.guestName && CTX.turnCount >= 2 && !CTX.askedName) {
+      CTX.askedName = true;
+      // Thêm vào cuối reply một câu hỏi tên tự nhiên nếu AI chưa hỏi
+      if (!reply.includes('tên') && !reply.includes('name') && !reply.match(/bạn là|bạn tên/i)) {
+        reply = reply + ' Nhân tiện, cho tôi hỏi bạn tên là gì để tôi xưng hô cho phải phép?';
+        // Cập nhật lại response đã push vào convo
+        S.convo[S.convo.length-1].content = reply;
+      }
+    }
+    if (!CTX.guestName && (reply.includes('tên') || reply.includes('name'))) CTX.askedName = true;
+
     speak(reply); addConv('ai', reply);
+    setStatus('Đang lắng nghe', '#00FF88');
   } catch(e) {
-    const err = 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau.';
-    speak(err); addConv('ai', err);
+    console.error('Groq error:', e);
+    speak('Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại.'); 
+    setStatus('Lỗi kết nối', '#FF4466');
   }
+}
+
+// Trích xuất tên từ câu nói
+function extractNameFromText(text) {
+  const t = text.trim();
+  // "Tôi là Minh", "Tên tôi là Minh", "Mình là Minh", "I am John"
+  const patterns = [
+    /(?:tôi là|tên tôi là|mình là|tên là|em là|anh là|chị là|i am|my name is|i'm)\s+([A-ZÀ-Ỹa-zà-ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹa-zà-ỹ][a-zà-ỹ]+)*)/i,
+    /^([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠ-Ỹ][a-zàáâãèéêìíòóôõùúăđĩũơưạ-ỹ]+(?:\s+[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯẠ-Ỹ][a-zàáâãèéêìíòóôõùúăđĩũơưạ-ỹ]+)*)$/,
+  ];
+  for (const p of patterns) {
+    const m = t.match(p);
+    if (m && m[1] && m[1].length > 1) return m[1];
+  }
+  // Nếu ngắn (< 4 từ) và không có động từ → có thể là tên
+  const words = t.split(/\s+/);
+  if (words.length <= 3 && !t.match(/(?:là|có|được|muốn|cần|hỏi|biết|thấy|nghĩ)/i)) return t;
+  return null;
+}
+
+// Detect ngôn ngữ đơn giản
+function detectLanguage(text) {
+  const enWords = /\b(the|is|are|what|how|can|you|i|we|help|please|thank|hello|hi|good)\b/i;
+  return enWords.test(text) ? 'en' : 'vi';
+}
+
+// Lưu tên khách vào server
+async function saveGuestName(name) {
+  if (!name || CTX.guestId) return;
+  try {
+    const r = await fetch(CFG.SERVER + '/api/guest/register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, descriptor:_pendingDesc, photo:_pendingPhoto })
+    });
+    const d = await r.json();
+    if (d.success) {
+      CTX.guestId = d.id;
+      S.lastDetectedId = d.id;
+      await loadFaceData(); await buildMatchers();
+      addRecent(name, '🧑');
+    }
+  } catch(e) {}
 }
 
 function matchScenario(text) {
@@ -707,9 +986,12 @@ function setStatus(txt, color) {
   document.getElementById('statusDot').style.boxShadow = `0 0 8px ${color}`;
 }
 function setTouchBtn(cls, icon) {
-  const btn = document.getElementById('touchBtn');
-  btn.className = 'touch-btn' + (cls ? ' ' + cls : '');
-  btn.textContent = icon;
+  // Không còn nút — chỉ update hint
+  const hint = document.getElementById('touchHint');
+  if (!hint) return;
+  if (cls==='listening') hint.textContent = '🎙 Đang lắng nghe...';
+  else if (cls==='speaking') hint.textContent = '🔊 Đang trả lời...';
+  else hint.textContent = '⏳ Đang xử lý...';
 }
 function setAvatarText(text, typing=false) {
   const el = document.getElementById('avatarText');
@@ -869,5 +1151,24 @@ window.addEventListener('load', initAll);
 // Voices load async
 if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = () => {};
 </script>
+
+<!-- KEYBOARD OVERLAY -->
+<div id="keyboardOverlay" style="display:none;position:fixed;inset:0;background:rgba(5,10,20,.92);z-index:800;align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(12px);">
+  <div style="text-align:center;color:#fff">
+    <div style="font-size:42px;margin-bottom:8px">👋</div>
+    <div style="font-size:20px;font-weight:800;background:linear-gradient(135deg,#00D4FF,#AA55FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Xin chào! Bạn tên gì?</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">Nói tên bạn hoặc nhập vào bên dưới</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <input id="guestNameInput" type="text" placeholder="Nhập tên của bạn..." style="background:rgba(255,255,255,.1);border:1px solid rgba(0,212,255,.4);border-radius:10px;padding:12px 18px;font-size:16px;color:#fff;outline:none;width:280px;font-family:inherit;" oninput="this.style.borderColor='#00D4FF'">
+    <button onclick="confirmGuestName()" style="background:linear-gradient(135deg,#00D4FF,#AA55FF);border:none;border-radius:10px;padding:12px 20px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Xác nhận</button>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button onclick="startNameListening()" style="background:rgba(255,68,102,.2);border:1px solid rgba(255,68,102,.4);border-radius:8px;padding:9px 16px;color:#FF4466;font-size:13px;font-weight:600;cursor:pointer" id="nameListenBtn">🎤 Nói tên</button>
+    <button onclick="skipGuestName()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 16px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer">Bỏ qua</button>
+  </div>
+  <div id="nameListenStatus" style="font-size:12px;color:rgba(0,212,255,.8);min-height:18px"></div>
+</div>
+
 </body>
 </html>
