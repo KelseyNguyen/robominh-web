@@ -345,7 +345,7 @@ async function loadConfig() {
     if (cfg.voiceRate) CFG.VOICE_RATE = cfg.voiceRate;
     if (cfg.voicePitch) CFG.VOICE_PITCH = cfg.voicePitch;
   } catch(e) {
-    S.groqKey = localStorage.getItem('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') || '';
+    S.groqKey = localStorage.getItem('groqKey') || '';
   }
 }
 async function loadFaceData() {
