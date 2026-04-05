@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Robominh — Lễ Tân AI</title>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+:root{
+  --bg:#050A14;--bg2:#0A1628;--bg3:#0F1E35;
+  --pri:#00D4FF;--pri2:#0099BB;--priL:rgba(0,212,255,.12);
+  --grn:#00FF88;--red:#FF4466;--gold:#FFD700;--pur:#AA55FF;
+  --txt:#E8F4FD;--sub:rgba(232,244,253,.6);--dim:rgba(232,244,253,.3);
+  --line:rgba(0,212,255,.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;touch-action:manipulation;}
+
+/* ═══ STARFIELD BACKGROUND ═══ */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ═══ MAIN LAYOUT ═══ */
+.app{position:relative;z-index:1;width:100vw;height:100vh;display:flex;flex-direction:column;}
+
+/* ═══ HEADER ═══ */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(5,10,20,.8);border-bottom:1px solid var(--line);backdrop-filter:blur(12px);flex-shrink:0;}
+.hdr-logo{display:flex;align-items:center;gap:10px;}
+.hdr-mark{width:38px;height:38px;background:linear-gradient(135deg,var(--pri),var(--pur));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(0,212,255,.4);}
+.hdr-name{font-weight:800;font-size:16px;background:linear-gradient(135deg,var(--pri),var(--pur));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-sub{font-size:10px;color:var(--dim);}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.hdr-clock{text-align:right;}
+.hdr-time{font-size:22px;font-weight:800;color:var(--pri);font-variant-numeric:tabular-nums;}
+.hdr-date{font-size:10px;color:var(--dim);}
+.hdr-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--sub);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══ MAIN CONTENT ═══ */
+.main{flex:1;display:flex;gap:0;overflow:hidden;}
+
+/* ═══ LEFT — CAMERA + FACE ═══ */
+.cam-panel{width:280px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,22,40,.6);border-right:1px solid var(--line);padding:14px;}
+.cam-wrap{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1;margin-bottom:12px;border:2px solid var(--line);}
+.cam-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+.cam-wrap canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);}
+.cam-overlay{position:absolute;inset:0;border-radius:12px;pointer-events:none;}
+.cam-corner{position:absolute;width:20px;height:20px;border-color:var(--pri);border-style:solid;border-width:0;}
+.cam-corner.tl{top:8px;left:8px;border-top-width:2px;border-left-width:2px;border-radius:4px 0 0 0;}
+.cam-corner.tr{top:8px;right:8px;border-top-width:2px;border-right-width:2px;border-radius:0 4px 0 0;}
+.cam-corner.bl{bottom:8px;left:8px;border-bottom-width:2px;border-left-width:2px;border-radius:0 0 0 4px;}
+.cam-corner.br{bottom:8px;right:8px;border-bottom-width:2px;border-right-width:2px;border-radius:0 0 4px 0;}
+.face-scan{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,var(--pri),transparent);animation:fscan 3s ease-in-out infinite;}
+@keyframes fscan{0%{top:0%;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.cam-label{text-align:center;font-size:11px;color:var(--sub);margin-bottom:10px;}
+.face-detected{background:var(--priL);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:12px;display:none;}
+.face-detected.on{display:block;}
+.fd-name{font-weight:700;color:var(--pri);font-size:14px;margin-bottom:2px;}
+.fd-role{font-size:10px;color:var(--sub);}
+.fd-conf{font-size:10px;color:var(--grn);margin-top:3px;}
+/* Recent visitors */
+.recent-ttl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
+.recent-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;}
+.rv{display:flex;align-items:center;gap:8px;background:rgba(0,212,255,.05);border:1px solid var(--line);border-radius:8px;padding:7px 10px;}
+.rv-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--pur));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.rv-name{font-size:11px;font-weight:600;line-height:1.2;}
+.rv-time{font-size:9px;color:var(--dim);}
+
+/* ═══ CENTER — AVATAR ═══ */
+.avatar-panel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;position:relative;}
+/* Avatar character */
+.avatar-wrap{position:relative;margin-bottom:16px;}
+.avatar-outer{width:200px;height:200px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;}
+.avatar-ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;background:linear-gradient(var(--bg),var(--bg)) padding-box,linear-gradient(135deg,var(--pri),var(--pur),var(--pri)) border-box;animation:rotatering 4s linear infinite;}
+@keyframes rotatering{to{transform:rotate(360deg)}}
+.avatar-ring2{position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(0,212,255,.2);animation:rotatering 8s linear infinite reverse;}
+.avatar-face{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#1a2a4a,#0d1f3a);border:3px solid var(--pri);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(0,212,255,.25),inset 0 0 40px rgba(0,212,255,.05);}
+.avatar-canvas{width:200px;height:200px;border-radius:50%;}
+/* Emotion particles */
+.particles{position:absolute;inset:0;pointer-events:none;border-radius:50%;overflow:hidden;}
+.particle{position:absolute;width:3px;height:3px;border-radius:50%;opacity:0;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%{transform:translateY(0) scale(0);opacity:0}30%{opacity:1}100%{transform:translateY(-80px) scale(1.5);opacity:0}}
+/* Sound waves */
+.waves{display:flex;align-items:center;gap:4px;height:60px;margin-bottom:16px;}
+.wave{width:4px;border-radius:2px;background:linear-gradient(to top,var(--pri),var(--pur));transition:height .1s;min-height:4px;}
+/* State display */
+.avatar-state{font-size:13px;color:var(--sub);text-align:center;margin-bottom:8px;min-height:20px;}
+.avatar-text{background:rgba(0,212,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.7;color:var(--txt);text-align:center;max-width:360px;min-height:60px;position:relative;}
+.avatar-text::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:10px;height:10px;background:rgba(0,212,255,.06);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:translateX(-50%) rotate(45deg);}
+.typing-cursor{display:inline-block;width:2px;height:14px;background:var(--pri);margin-left:2px;animation:blink .7s ease-in-out infinite;vertical-align:middle;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+/* Touch button */
+.touch-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--pri);background:var(--priL);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:14px;transition:all .2s;font-size:24px;box-shadow:0 0 20px rgba(0,212,255,.2);}
+.touch-btn:active{transform:scale(.9);}
+.touch-btn.listening{border-color:var(--red);background:rgba(255,68,102,.12);box-shadow:0 0 20px rgba(255,68,102,.3);animation:ripple 1s ease-in-out infinite;}
+.touch-btn.speaking{border-color:var(--grn);background:rgba(0,255,136,.1);box-shadow:0 0 20px rgba(0,255,136,.25);}
+@keyframes ripple{0%,100%{box-shadow:0 0 20px rgba(255,68,102,.3)}50%{box-shadow:0 0 35px rgba(255,68,102,.6),0 0 50px rgba(255,68,102,.2)}}
+.touch-hint{font-size:10px;color:var(--dim);margin-top:6px;text-align:center;}
+
+/* ═══ RIGHT — PRODUCTS/INFO ═══ */
+.info-panel{width:260px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,22,40,.6);border-left:1px solid var(--line);padding:14px;}
+.info-ttl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.product-card{background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(170,85,255,.06));border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:none;animation:slideIn .4s ease;}
+.product-card.on{display:block;}
+@keyframes slideIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.product-img{width:100%;aspect-ratio:4/3;border-radius:8px;object-fit:cover;margin-bottom:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:36px;}
+.product-img img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+.product-name{font-weight:700;font-size:13px;margin-bottom:4px;color:var(--pri);}
+.product-desc{font-size:11px;color:var(--sub);line-height:1.6;}
+.product-price{font-size:14px;font-weight:800;color:var(--gold);margin-top:6px;}
+/* Info box */
+.info-box{background:rgba(0,212,255,.04);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;}
+.info-box-ttl{font-size:11px;font-weight:700;color:var(--pri);margin-bottom:6px;}
+.info-box-txt{font-size:11px;color:var(--sub);line-height:1.7;}
+/* Conversation history */
+.conv-ttl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:8px;margin-top:10px;}
+.conv-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.conv-item{background:rgba(0,212,255,.04);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--sub);border-left:2px solid var(--line);}
+.conv-item.user{border-left-color:var(--pri);}
+.conv-item.ai{border-left-color:var(--pur);}
+.conv-role{font-size:9px;font-weight:700;color:var(--dim);margin-bottom:2px;text-transform:uppercase;}
+
+/* ═══ NOTIFICATION ═══ */
+.notif{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(10,22,40,.95);border:1px solid var(--pri);border-radius:14px;padding:12px 22px;font-size:13px;font-weight:600;color:var(--pri);z-index:999;opacity:0;transition:all .3s;backdrop-filter:blur(12px);white-space:nowrap;box-shadow:0 4px 20px rgba(0,212,255,.25);}
+.notif.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ═══ LOADING ═══ */
+.loading-scr{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading-scr.hide{display:none;}
+.load-logo{font-size:64px;animation:bounce 1s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.load-ttl{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--pri),var(--pur));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.load-sub{font-size:13px;color:var(--sub);text-align:center;}
+.load-bar{width:240px;height:4px;background:rgba(0,212,255,.15);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:linear-gradient(90deg,var(--pri),var(--pur));border-radius:2px;transition:width .4s;width:0%;}
+.load-step{font-size:11px;color:var(--dim);}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,212,255,.3);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-scr" id="loadScr">
+  <div class="load-logo">🤖</div>
+  <div class="load-ttl">Robominh AI Receptionist</div>
+  <div class="load-sub" id="loadSub">Đang khởi động hệ thống...</div>
+  <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+  <div class="load-step" id="loadStep">Chuẩn bị...</div>
+</div>
+
+<!-- STARS -->
+<canvas id="stars"></canvas>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<div class="app">
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-logo">
+      <div class="hdr-mark">🤖</div>
+      <div><div class="hdr-name">Robominh AI</div><div class="hdr-sub">Lễ Tân Thông Minh</div></div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-status"><div class="status-dot" id="statusDot"></div><span id="statusTxt">Sẵn sàng</span></div>
+      <div class="hdr-clock"><div class="hdr-time" id="clock">--:--</div><div class="hdr-date" id="clockDate"></div></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- LEFT: CAMERA -->
+    <div class="cam-panel">
+      <div class="cam-wrap" id="camWrap">
+        <video id="camVid" autoplay muted playsinline></video>
+        <canvas id="camCvs"></canvas>
+        <div class="cam-overlay">
+          <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
+          <div class="cam-corner bl"></div><div class="cam-corner br"></div>
+          <div class="face-scan"></div>
+        </div>
+      </div>
+      <div class="cam-label" id="camLabel">📷 Đang quét khuôn mặt...</div>
+      <div class="face-detected" id="faceDetected">
+        <div class="fd-name" id="fdName">—</div>
+        <div class="fd-role" id="fdRole">—</div>
+        <div class="fd-conf" id="fdConf">—</div>
+      </div>
+      <div class="recent-ttl" style="margin-top:12px">Khách gần đây</div>
+      <div class="recent-list" id="recentList"></div>
+    </div>
+
+    <!-- CENTER: AVATAR -->
+    <div class="avatar-panel">
+      <div class="avatar-wrap">
+        <div class="avatar-outer">
+          <div class="avatar-ring"></div>
+          <div class="avatar-ring2"></div>
+          <div class="avatar-face" id="avatarFace">
+            <canvas class="avatar-canvas" id="avatarCanvas" width="200" height="200"></canvas>
+            <div class="particles" id="particles"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="waves" id="waves">
+        <!-- Generated by JS -->
+      </div>
+
+      <div class="avatar-state" id="avatarState">Nhấn để bắt đầu nói chuyện</div>
+
+      <div class="avatar-text" id="avatarText">
+        Xin chào! Tôi là trợ lý AI của Robominh.<br>Tôi có thể giúp gì cho bạn?
+      </div>
+
+      <div class="touch-btn" id="touchBtn" onclick="toggleListen()">🎤</div>
+      <div class="touch-hint" id="touchHint">Chạm để nói • Chạm lại để dừng</div>
+    </div>
+
+    <!-- RIGHT: PRODUCTS/INFO -->
+    <div class="info-panel">
+      <div class="info-ttl">Thông tin hiển thị</div>
+
+      <div class="product-card" id="productCard">
+        <div class="product-img" id="productImg">🏷️</div>
+        <div class="product-name" id="productName">—</div>
+        <div class="product-desc" id="productDesc">—</div>
+        <div class="product-price" id="productPrice"></div>
+      </div>
+
+      <div class="info-box" id="infoBox">
+        <div class="info-box-ttl">🏢 Robominh</div>
+        <div class="info-box-txt" id="infoBoxTxt">
+          Chào mừng đến với Robominh!<br>
+          Tôi có thể giúp bạn tìm hiểu về sản phẩm, dịch vụ hoặc kết nối với nhân viên phù hợp.
+        </div>
+      </div>
+
+      <div class="conv-ttl">Cuộc trò chuyện</div>
+      <div class="conv-list" id="convList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════
+   CẤU HÌNH — SỬA Ở ĐÂY
+══════════════════════════════════ */
+const CFG = {
+  SERVER:   'https://letanrobominh-server.onrender.com',
+  GROQ_KEY: '', // Để trống — tự lấy từ server
+  LANG:     'vi-VN',
+  VOICE_RATE:  1.0,
+  VOICE_PITCH: 1.1,
+};
+
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+const S = {
+  listening:   false,
+  speaking:    false,
+  faceReady:   false,
+  camStream:   null,
+  recognition: null,
+  synth:       window.speechSynthesis,
+  currentUtter:null,
+  convo:       [],   // lịch sử hội thoại
+  faceData:    {},   // dữ liệu khuôn mặt
+  knownGuests: {},   // khách đã nhận diện
+  products:    [],   // sản phẩm
+  knowledge:   [],   // kiến thức từ admin
+  lastDetected:0,
+  lastDetectedId: null,
+  cooldown:    15000,
+  emotion:     'idle', // idle | happy | thinking | listening | speaking
+  waveBars:    [],
+  avatarCtx:   null,
+  faceLabelers:[],
+  groqKey:     '',
+  scenarios:   [],
+};
+
+/* ══════════════════════════════════
+   LOADING
+══════════════════════════════════ */
+function setLoad(pct, step) {
+  document.getElementById('loadFill').style.width = pct + '%';
+  document.getElementById('loadStep').textContent = step;
+}
+async function initAll() {
+  setLoad(10, 'Đang tải cấu hình...');
+  await loadConfig();
+
+  setLoad(25, 'Đang khởi động camera...');
+  await initCamera();
+
+  setLoad(45, 'Đang tải mô hình AI nhận diện khuôn mặt...');
+  await initFaceApi();
+
+  setLoad(60, 'Đang tải dữ liệu nhân viên & khách...');
+  await loadFaceData();
+  await loadKnowledge();
+
+  setLoad(75, 'Đang khởi động giọng nói...');
+  initSpeech();
+
+  setLoad(85, 'Đang khởi động giao diện...');
+  initAvatar();
+  initWaves();
+  initStars();
+  startClock();
+
+  setLoad(100, 'Sẵn sàng!');
+  await new Promise(r => setTimeout(r, 800));
+  document.getElementById('loadScr').classList.add('hide');
+
+  // Chào mừng ban đầu
+  setTimeout(() => speak('Xin chào! Tôi là trợ lý AI lễ tân của Robominh. Tôi có thể giúp gì cho bạn hôm nay?'), 500);
+  startFaceLoop();
+}
+
+/* ══════════════════════════════════
+   CONFIG & DATA
+══════════════════════════════════ */
+async function loadConfig() {
+  try {
+    const r = await fetch(CFG.SERVER + '/api/config');
+    const cfg = await r.json();
+    if (cfg.groqKey) S.groqKey = cfg.groqKey;
+    if (cfg.scenarios) S.scenarios = cfg.scenarios;
+    if (cfg.products) S.products = cfg.products;
+    if (cfg.voiceRate) CFG.VOICE_RATE = cfg.voiceRate;
+    if (cfg.voicePitch) CFG.VOICE_PITCH = cfg.voicePitch;
+  } catch(e) {
+    S.groqKey = localStorage.getItem('groq_key') || '';
+  }
+}
+async function loadFaceData() {
+  try {
+    const r = await fetch(CFG.SERVER + '/api/face/data');
+    S.faceData = await r.json();
+    const guests = localStorage.getItem('known_guests');
+    if (guests) S.knownGuests = JSON.parse(guests);
+    if (S.faceReady) await buildMatchers();
+  } catch(e) {}
+}
+async function loadKnowledge() {
+  try {
+    const r = await fetch(CFG.SERVER + '/api/knowledge');
+    const d = await r.json();
+    S.knowledge  = d.items  || [];
+    S.products   = d.products || [];
+    S.scenarios  = d.scenarios || [];
+  } catch(e) {}
+}
+
+/* ══════════════════════════════════
+   CAMERA
+══════════════════════════════════ */
+async function initCamera() {
+  try {
+    S.camStream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:480, height:480, facingMode:'user' }, audio:false
+    });
+    document.getElementById('camVid').srcObject = S.camStream;
+    await document.getElementById('camVid').play();
+  } catch(e) {
+    document.getElementById('camLabel').textContent = '❌ Camera không khả dụng';
+  }
+}
+
+/* ══════════════════════════════════
+   FACE API
+══════════════════════════════════ */
+async function initFaceApi() {
+  try {
+    if (typeof faceapi === 'undefined') return;
+    await Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri('https://vladmandic.github.io/face-api/model'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model'),
+      faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model'),
+    ]);
+    S.faceReady = true;
+  } catch(e) { console.warn('Face API:', e.message); }
+}
+
+async function buildMatchers() {
+  S.faceLabelers = [];
+  // Nhân viên từ server
+  try {
+    const r = await fetch(CFG.SERVER + '/api/employees');
+    const emps = await r.json();
+    for (const e of emps) {
+      const fd = S.faceData[e.id];
+      if (!fd?.descriptors?.length) continue;
+      const valid = fd.descriptors.filter(d=>d&&d.length===128).map(d=>new Float32Array(d));
+      if (valid.length > 0) {
+        S.faceLabelers.push({ id: String(e.id), name: e.name, role: 'employee', dept: e.pos || '', matcher: new faceapi.FaceMatcher(new faceapi.LabeledFaceDescriptors(String(e.id), valid), 0.5) });
+      }
+    }
+  } catch(e) {}
+  // Khách đã biết
+  Object.entries(S.knownGuests).forEach(([id, g]) => {
+    if (!g.descriptors?.length) return;
+    const valid = g.descriptors.filter(d=>d&&d.length===128).map(d=>new Float32Array(d));
+    if (valid.length > 0) {
+      S.faceLabelers.push({ id, name: g.name, role: 'guest', matcher: new faceapi.FaceMatcher(new faceapi.LabeledFaceDescriptors(id, valid), 0.52) });
+    }
+  });
+}
+
+/* ══════════════════════════════════
+   FACE DETECTION LOOP
+══════════════════════════════════ */
+let faceLoopTimer = null;
+function startFaceLoop() {
+  if (faceLoopTimer) clearInterval(faceLoopTimer);
+  faceLoopTimer = setInterval(detectFaces, 1500);
+}
+
+async function detectFaces() {
+  if (!S.faceReady || !S.speaking) return;
+  const vid = document.getElementById('camVid');
+  if (!vid.readyState) return;
+  try {
+    const dets = await faceapi.detectAllFaces(vid, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })).withFaceLandmarks().withFaceDescriptors();
+    const cvs = document.getElementById('camCvs');
+    const dims = faceapi.matchDimensions(cvs, { width: vid.videoWidth||480, height: vid.videoHeight||480 }, true);
+    const resized = faceapi.resizeResults(dets, dims);
+    const ctx = cvs.getContext('2d'); ctx.clearRect(0,0,cvs.width,cvs.height);
+    faceapi.draw.drawDetections(cvs, resized);
+
+    if (!dets.length) { hideFaceDetected(); return; }
+    if (!S.faceLabelers.length) {
+      showFaceDetected('Khách chưa đăng ký', '', Math.round(dets[0].detection.score*100)+'%');
+      const now = Date.now();
+      if (now - S.lastDetected > S.cooldown) {
+        S.lastDetected = now; S.lastDetectedId = 'unknown_' + now;
+        greetUnknownGuest();
+      }
+      return;
+    }
+    // Match
+    let best = null, bestDist = 999;
+    for (const det of dets) {
+      for (const lb of S.faceLabelers) {
+        const m = lb.matcher.findBestMatch(det.descriptor);
+        if (m.distance < bestDist) { bestDist = m.distance; best = { ...lb, dist: m.distance }; }
+      }
+    }
+    if (best && best.dist < 0.52) {
+      showFaceDetected(best.name, best.role === 'employee' ? '👔 Nhân viên · ' + best.dept : '🧑 Khách quen', Math.round((1-best.dist)*100) + '% chính xác');
+      const now = Date.now();
+      if (now - S.lastDetected > S.cooldown || S.lastDetectedId !== best.id) {
+        S.lastDetected = now; S.lastDetectedId = best.id;
+        if (best.role === 'employee') greetEmployee(best.name, best.dept);
+        else greetKnownGuest(best.name);
+        addRecent(best.name, best.role === 'employee' ? '👔' : '🧑');
+      }
+    } else {
+      hideFaceDetected();
+    }
+  } catch(e) {}
+}
+
+function showFaceDetected(name, role, conf) {
+  const el = document.getElementById('faceDetected'); el.classList.add('on');
+  document.getElementById('fdName').textContent = name;
+  document.getElementById('fdRole').textContent = role;
+  document.getElementById('fdConf').textContent = conf;
+  document.getElementById('camLabel').textContent = '✅ Đã nhận diện';
+}
+function hideFaceDetected() {
+  document.getElementById('faceDetected').classList.remove('on');
+  document.getElementById('camLabel').textContent = '📷 Đang quét khuôn mặt...';
+}
+
+/* ══════════════════════════════════
+   GREETINGS
+══════════════════════════════════ */
+function greetEmployee(name, dept) {
+  const greetings = [
+    `Chào ${name}! Chúc bạn một ngày làm việc hiệu quả và tràn đầy năng lượng!`,
+    `Xin chào ${name}! Hôm nay trông bạn rất tươi tắn. Chúc bạn ngày mới tốt lành nhé!`,
+    `Chào buổi sáng ${name}! Chúc bạn một ngày làm việc thật suôn sẻ và thành công!`,
+  ];
+  const msg = greetings[Math.floor(Math.random() * greetings.length)];
+  speak(msg); setEmotion('happy');
+}
+function greetKnownGuest(name) {
+  const greetings = [
+    `Xin chào ${name}! Rất vui được gặp lại bạn. Tôi có thể giúp gì cho bạn hôm nay?`,
+    `Chào mừng trở lại, ${name}! Hôm nay bạn cần hỗ trợ gì ạ?`,
+  ];
+  speak(greetings[Math.floor(Math.random() * greetings.length)]); setEmotion('happy');
+}
+function greetUnknownGuest() {
+  const greetings = [
+    'Xin chào! Chào mừng bạn đến với Robominh! Tôi là trợ lý AI lễ tân. Tôi có thể giúp gì cho bạn ạ?',
+    'Xin chào quý khách! Chào mừng đến với Robominh. Bạn cần tìm hiểu về sản phẩm hay dịch vụ gì không?',
+  ];
+  speak(greetings[Math.floor(Math.random() * greetings.length)]); setEmotion('happy');
+}
+function addRecent(name, icon) {
+  const list = document.getElementById('recentList');
+  const el = document.createElement('div'); el.className = 'rv';
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const time = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = `<div class="rv-av">${initials}</div><div><div class="rv-name">${name}</div><div class="rv-time">${icon} ${time}</div></div>`;
+  list.insertBefore(el, list.firstChild);
+  if (list.children.length > 5) list.removeChild(list.lastChild);
+}
+
+/* ══════════════════════════════════
+   VOICE — SPEECH RECOGNITION
+══════════════════════════════════ */
+function initSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showNotif('⚠️ Trình duyệt không hỗ trợ giọng nói'); return; }
+  S.recognition = new SR();
+  S.recognition.lang = CFG.LANG;
+  S.recognition.continuous = false;
+  S.recognition.interimResults = true;
+  S.recognition.maxAlternatives = 1;
+
+  S.recognition.onstart = () => {
+    S.listening = true; setEmotion('listening');
+    setState('Đang nghe...'); setTouchBtn('listening', '🔴');
+    setStatus('Đang nghe', '#FF4466');
+  };
+  S.recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
+    if (e.results[e.results.length-1].isFinal) {
+      // Ngắt lời nếu đang nói
+      if (S.speaking) { stopSpeaking(); }
+      processUserInput(transcript);
+    } else {
+      setAvatarText('🎤 "' + transcript + '"');
+    }
+  };
+  S.recognition.onerror = (e) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') showNotif('⚠️ Lỗi nhận dạng: ' + e.error);
+    stopListening();
+  };
+  S.recognition.onend = () => { stopListening(); };
+}
+
+function toggleListen() {
+  if (S.listening) stopListening();
+  else if (S.speaking) { stopSpeaking(); setTimeout(startListening, 300); }
+  else startListening();
+}
+function startListening() {
+  if (!S.recognition || S.listening) return;
+  try { S.recognition.start(); } catch(e) {}
+}
+function stopListening() {
+  S.listening = false;
+  if (S.recognition) { try { S.recognition.stop(); } catch(e) {} }
+  if (!S.speaking) { setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('', '🎤'); setStatus('Sẵn sàng', '#00FF88'); }
+}
+
+/* ══════════════════════════════════
+   VOICE — TTS (Text to Speech)
+══════════════════════════════════ */
+function speak(text) {
+  if (!text) return;
+  stopSpeaking();
+  S.speaking = true; setEmotion('speaking');
+  setState('Đang nói...'); setTouchBtn('speaking', '🔊');
+  setStatus('Đang nói', '#00FF88');
+  setAvatarText(text, true);
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = CFG.LANG;
+  utter.rate = CFG.VOICE_RATE;
+  utter.pitch = CFG.VOICE_PITCH;
+  utter.volume = 1;
+
+  // Chọn giọng nữ Việt nếu có
+  const voices = S.synth.getVoices();
+  const viVoice = voices.find(v => v.lang.includes('vi') && v.name.toLowerCase().includes('female'))
+                || voices.find(v => v.lang.includes('vi'))
+                || voices.find(v => v.name.includes('Google') && v.lang.includes('vi'));
+  if (viVoice) utter.voice = viVoice;
+
+  utter.onend = () => { S.speaking = false; setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('','🎤'); setStatus('Sẵn sàng','#00FF88'); };
+  utter.onerror = () => { S.speaking = false; setEmotion('idle'); };
+
+  S.currentUtter = utter;
+  S.synth.speak(utter);
+  animateWavesSpeaking();
+}
+function stopSpeaking() {
+  S.speaking = false; S.synth.cancel();
+  stopWaveAnimation();
+  setEmotion('idle'); setState('Nhấn để nói chuyện'); setTouchBtn('','🎤');
+}
+
+/* ══════════════════════════════════
+   AI — GROQ CHAT
+══════════════════════════════════ */
+async function processUserInput(text) {
+  if (!text.trim()) return;
+  addConv('user', text);
+  setEmotion('thinking'); setState('Đang suy nghĩ...');
+
+  // Kiểm tra kịch bản cứng trước
+  const scenario = matchScenario(text);
+  if (scenario) {
+    checkProductMention(scenario.response);
+    speak(scenario.response);
+    addConv('ai', scenario.response);
+    return;
+  }
+
+  // Gọi Groq AI
+  const key = S.groqKey || localStorage.getItem('groq_key') || '';
+  if (!key) {
+    const fallback = 'Xin lỗi, tôi chưa được kết nối với AI. Vui lòng liên hệ quản trị viên.';
+    speak(fallback); addConv('ai', fallback); return;
+  }
+
+  // Xây dựng system prompt từ kiến thức
+  const knowledgeStr = S.knowledge.map(k => k.content).join('\n');
+  const productStr   = S.products.map(p => `Sản phẩm: ${p.name} - ${p.desc} - Giá: ${p.price}`).join('\n');
+  const systemPrompt = `Bạn là trợ lý AI lễ tân của công ty Robominh. Trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa 2-3 câu), chuyên nghiệp.
+Thông tin công ty: ${knowledgeStr}
+Sản phẩm/Dịch vụ: ${productStr}
+Khi nhắc đến sản phẩm cụ thể, thêm thẻ [PRODUCT:tên_sản_phẩm] vào cuối câu.
+Không bịa thông tin. Nếu không biết, đề nghị gặp nhân viên phụ trách.`;
+
+  S.convo.push({ role: 'user', content: text });
+  if (S.convo.length > 10) S.convo.splice(0, 2);
+
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role:'system', content:systemPrompt }, ...S.convo],
+        temperature: 0.7, max_tokens: 200
+      })
+    });
+    const d = await r.json();
+    let reply = d.choices?.[0]?.message?.content || 'Xin lỗi, tôi không hiểu. Bạn có thể nói lại không?';
+    S.convo.push({ role:'assistant', content:reply });
+    // Xử lý product tag
+    const prodMatch = reply.match(/\[PRODUCT:([^\]]+)\]/);
+    if (prodMatch) { reply = reply.replace(/\[PRODUCT:[^\]]+\]/g,'').trim(); showProduct(prodMatch[1]); }
+    else checkProductMention(reply);
+    speak(reply); addConv('ai', reply);
+  } catch(e) {
+    const err = 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau.';
+    speak(err); addConv('ai', err);
+  }
+}
+
+function matchScenario(text) {
+  const t = text.toLowerCase();
+  return S.scenarios.find(s => s.keywords && s.keywords.some(k => t.includes(k.toLowerCase())));
+}
+
+function checkProductMention(text) {
+  const t = text.toLowerCase();
+  const prod = S.products.find(p => t.includes(p.name.toLowerCase()));
+  if (prod) showProduct(prod.name);
+  else hideProduct();
+}
+
+/* ══════════════════════════════════
+   PRODUCT DISPLAY
+══════════════════════════════════ */
+function showProduct(name) {
+  const prod = S.products.find(p => p.name.toLowerCase() === name.toLowerCase() || p.name === name);
+  if (!prod) return;
+  const card = document.getElementById('productCard'); card.classList.add('on');
+  document.getElementById('productName').textContent = prod.name;
+  document.getElementById('productDesc').textContent = prod.desc || '';
+  document.getElementById('productPrice').textContent = prod.price ? '💰 ' + prod.price : '';
+  const imgEl = document.getElementById('productImg');
+  if (prod.image) imgEl.innerHTML = `<img src="${prod.image}" alt="${prod.name}">`;
+  else imgEl.textContent = prod.icon || '🏷️';
+  document.getElementById('infoBox').style.display = 'none';
+}
+function hideProduct() {
+  document.getElementById('productCard').classList.remove('on');
+  document.getElementById('infoBox').style.display = 'block';
+}
+
+/* ══════════════════════════════════
+   UI HELPERS
+══════════════════════════════════ */
+function setState(txt) { document.getElementById('avatarState').textContent = txt; }
+function setStatus(txt, color) {
+  document.getElementById('statusTxt').textContent = txt;
+  document.getElementById('statusDot').style.background = color;
+  document.getElementById('statusDot').style.boxShadow = `0 0 8px ${color}`;
+}
+function setTouchBtn(cls, icon) {
+  const btn = document.getElementById('touchBtn');
+  btn.className = 'touch-btn' + (cls ? ' ' + cls : '');
+  btn.textContent = icon;
+}
+function setAvatarText(text, typing=false) {
+  const el = document.getElementById('avatarText');
+  if (!typing) { el.innerHTML = text; return; }
+  el.innerHTML = '';
+  let i=0;
+  const cursor = document.createElement('span'); cursor.className='typing-cursor'; el.appendChild(cursor);
+  const timer = setInterval(() => {
+    if (i < text.length) { el.insertBefore(document.createTextNode(text[i++]), cursor); }
+    else { clearInterval(timer); cursor.remove(); }
+  }, 30);
+}
+function addConv(role, text) {
+  const list = document.getElementById('convList');
+  const el = document.createElement('div'); el.className = 'conv-item ' + role;
+  el.innerHTML = `<div class="conv-role">${role==='user'?'👤 Khách':'🤖 AI'}</div>${text.slice(0,80)}${text.length>80?'...':''}`;
+  list.appendChild(el); list.scrollTop = list.scrollHeight;
+  if (list.children.length > 8) list.removeChild(list.firstChild);
+}
+function showNotif(msg, dur=3000) {
+  const el = document.getElementById('notif'); el.textContent = msg; el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), dur);
+}
+
+/* ══════════════════════════════════
+   AVATAR ANIMATION
+══════════════════════════════════ */
+const EMOTIONS = {
+  idle:      { eyes:[{x:70,y:85,r:8,blink:true},{x:130,y:85,r:8,blink:true}], mouth:{type:'smile',y:130,w:40}, color:'#00D4FF', particles:[] },
+  happy:     { eyes:[{x:70,y:85,r:9,blink:true},{x:130,y:85,r:9,blink:true}], mouth:{type:'bigsmile',y:128,w:50}, color:'#00FF88', particles:['💛','⭐','✨'] },
+  thinking:  { eyes:[{x:70,y:85,r:8,blink:false},{x:130,y:85,r:8,blink:false}], mouth:{type:'hmm',y:132,w:30}, color:'#AA55FF', particles:['💭','❓'] },
+  listening: { eyes:[{x:70,y:80,r:10,blink:false},{x:130,y:80,r:10,blink:false}], mouth:{type:'open',y:130,w:35}, color:'#FF4466', particles:[] },
+  speaking:  { eyes:[{x:70,y:85,r:8,blink:true},{x:130,y:85,r:8,blink:true}], mouth:{type:'talking',y:128,w:40}, color:'#00D4FF', particles:['💬'] },
+};
+let blinkTimer=0, mouthPhase=0, emoAnimId=null;
+function initAvatar() {
+  S.avatarCtx = document.getElementById('avatarCanvas').getContext('2d');
+  animateAvatar();
+}
+function setEmotion(emo) { S.emotion = emo; spawnParticles(EMOTIONS[emo]?.particles||[]); }
+function animateAvatar() {
+  const ctx = S.avatarCtx; const emo = EMOTIONS[S.emotion] || EMOTIONS.idle;
+  const W=200,H=200;
+  ctx.clearRect(0,0,W,H);
+  // Face bg
+  const grad = ctx.createRadialGradient(100,90,20,100,90,100);
+  grad.addColorStop(0,'#1a3a5c'); grad.addColorStop(1,'#0a1628');
+  ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(100,100,95,0,Math.PI*2); ctx.fill();
+  blinkTimer += 0.05;
+  const blink = emo.eyes[0].blink && Math.sin(blinkTimer*3) > 0.97;
+  // Eyes
+  emo.eyes.forEach(eye => {
+    const ry = blink ? 1 : eye.r;
+    // Glow
+    ctx.shadowColor = emo.color; ctx.shadowBlur = 12;
+    ctx.fillStyle = emo.color; ctx.beginPath();
+    ctx.ellipse(eye.x, eye.y, eye.r+2, ry+2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Pupil
+    ctx.fillStyle = '#001830'; ctx.beginPath();
+    ctx.ellipse(eye.x, eye.y, eye.r-3, blink?0.5:eye.r-3, 0, 0, Math.PI*2); ctx.fill();
+    // Shine
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath();
+    ctx.arc(eye.x-2, eye.y-2, 2, 0, Math.PI*2); ctx.fill();
+  });
+  mouthPhase += 0.12;
+  // Mouth
+  const m = emo.mouth; ctx.strokeStyle = emo.color; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.shadowColor = emo.color; ctx.shadowBlur = 8;
+  if (m.type === 'smile') {
+    ctx.beginPath(); ctx.arc(100, m.y-10, m.w/2, 0.2*Math.PI, 0.8*Math.PI); ctx.stroke();
+  } else if (m.type === 'bigsmile') {
+    ctx.beginPath(); ctx.arc(100, m.y-14, m.w/2, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
+  } else if (m.type === 'talking') {
+    const h = 6 + Math.abs(Math.sin(mouthPhase))*8;
+    ctx.beginPath(); ctx.ellipse(100, m.y, m.w/2, h, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#001830'; ctx.fill(); ctx.stroke();
+  } else if (m.type === 'open') {
+    ctx.beginPath(); ctx.ellipse(100, m.y, m.w/2, 8, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#001830'; ctx.fill(); ctx.stroke();
+  } else if (m.type === 'hmm') {
+    ctx.beginPath(); ctx.moveTo(100-m.w/2, m.y); ctx.lineTo(100+m.w/2, m.y); ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  emoAnimId = requestAnimationFrame(animateAvatar);
+}
+function spawnParticles(emojis) {
+  const wrap = document.getElementById('particles'); wrap.innerHTML = '';
+  emojis.forEach((e,i) => {
+    const el = document.createElement('div'); el.className='particle';
+    el.textContent = e; el.style.cssText = `left:${30+Math.random()*140}px;bottom:0;font-size:14px;animation-delay:${i*0.4}s;animation-duration:${2+Math.random()}s;`;
+    wrap.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════
+   SOUND WAVES
+══════════════════════════════════ */
+function initWaves() {
+  const wrap = document.getElementById('waves');
+  wrap.innerHTML = '';
+  for (let i=0;i<24;i++) {
+    const bar = document.createElement('div'); bar.className='wave';
+    bar.style.cssText = `height:4px;background:linear-gradient(to top,var(--pri),var(--pur));opacity:0.4;`;
+    wrap.appendChild(bar); S.waveBars.push(bar);
+  }
+}
+let waveAnimId=null;
+function animateWavesSpeaking() {
+  if (waveAnimId) cancelAnimationFrame(waveAnimId);
+  let t=0;
+  function loop() {
+    t+=0.15;
+    S.waveBars.forEach((b,i) => {
+      const h = S.speaking ? 6+Math.abs(Math.sin(t+i*0.4))*48 : 4;
+      const op = S.speaking ? 0.6+Math.sin(t+i*0.3)*0.4 : 0.4;
+      b.style.height = h+'px'; b.style.opacity = op;
+    });
+    waveAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopWaveAnimation() { /* Let it animate down naturally */ }
+
+/* ══════════════════════════════════
+   STARFIELD
+══════════════════════════════════ */
+function initStars() {
+  const cvs = document.getElementById('stars'); const ctx = cvs.getContext('2d');
+  cvs.width = innerWidth; cvs.height = innerHeight;
+  const stars = Array.from({length:120},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.5+.3,a:Math.random()*Math.PI*2,speed:Math.random()*.3+.1}));
+  function draw() {
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    stars.forEach(s=>{s.a+=s.speed*.05;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,212,255,${.1+.15*Math.sin(s.a)})`;ctx.fill();});
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ══════════════════════════════════
+   CLOCK
+══════════════════════════════════ */
+function startClock() {
+  function update() {
+    const n=new Date();
+    document.getElementById('clock').textContent=n.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('clockDate').textContent=n.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'});
+  }
+  update(); setInterval(update,1000);
+}
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+animateWavesSpeaking();
+window.addEventListener('load', initAll);
+// Voices load async
+if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = () => {};
+</script>
+</body>
+</html>

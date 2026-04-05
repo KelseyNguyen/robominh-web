@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robominh Receptionist — Admin</title>
+<style>
+:root{
+  --bg:#F0F2F7;--bg2:#fff;--bg3:#F8F9FC;
+  --pri:#1D4ED8;--pri2:#1E40AF;--priL:#EFF6FF;
+  --grn:#16A34A;--grnL:#F0FDF4;--red:#DC2626;--redL:#FEF2F2;
+  --amb:#D97706;--ambL:#FFFBEB;--pur:#7C3AED;--purL:#F5F3FF;
+  --txt:#111827;--sub:#6B7280;--dim:#9CA3AF;--line:#E5E7EB;--line2:#F3F4F6;
+  --r:10px;--r2:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;}
+.layout{display:flex;min-height:100vh;}
+.sb{width:230px;background:var(--bg2);border-right:1px solid var(--line);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+.sb-logo{padding:16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+.sb-mark{width:36px;height:36px;background:linear-gradient(135deg,#00D4FF,#AA55FF);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.sb-name{font-weight:800;font-size:14px;}
+.sb-sub{font-size:10px;color:var(--dim);}
+.sb-nav{flex:1;padding:8px;}
+.sb-g{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;padding:10px 8px 4px;}
+.sl{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--sub);font-weight:500;font-size:13px;margin-bottom:1px;transition:all .15s;}
+.sl:hover{background:var(--bg3);color:var(--txt);}
+.sl.on{background:var(--priL);color:var(--pri);font-weight:700;}
+.sl .i{font-size:15px;width:20px;text-align:center;}
+.main{flex:1;margin-left:230px;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--line);height:52px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:90;}
+.tb-ttl{font-weight:700;font-size:15px;flex:1;}
+.con{padding:20px;}
+.page{display:none;}
+.page.on{display:block;}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.ph-ttl{font-weight:800;font-size:19px;}
+.ph-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:14px;}
+.ch{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.ch-ttl{font-weight:700;font-size:14px;}
+.cb{padding:16px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.btn:active{transform:scale(.97);}
+.btn-pri{background:var(--pri);color:#fff;}
+.btn-pri:hover{background:var(--pri2);}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--sub);}
+.btn-ghost:hover{background:var(--bg3);}
+.btn-red{background:var(--redL);color:var(--red);border:1px solid rgba(220,38,38,.2);}
+.btn-grn{background:var(--grnL);color:var(--grn);border:1px solid rgba(22,163,74,.2);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-xs{padding:3px 7px;font-size:11px;}
+.bg{display:flex;gap:8px;flex-wrap:wrap;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+label{font-size:12px;font-weight:600;}
+input,select,textarea{font-family:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:6px;outline:none;background:var(--bg2);color:var(--txt);transition:border-color .15s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);}
+textarea{resize:vertical;min-height:80px;}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--sub);text-transform:uppercase;border-bottom:1px solid var(--line);}
+td{padding:10px 12px;border-bottom:1px solid var(--line2);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+.bx{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.bx-g{background:var(--grnL);color:var(--grn);}
+.bx-b{background:var(--priL);color:var(--pri);}
+.bx-p{background:var(--purL);color:var(--pur);}
+.bx-a{background:var(--ambL);color:var(--amb);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(4px);}
+.overlay.on{display:flex;}
+.modal{background:var(--bg2);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.12);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;}
+.mh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+.mh-ttl{font-weight:700;font-size:15px;}
+.mc{width:26px;height:26px;border:none;background:var(--bg3);border-radius:5px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.mb{padding:20px;}
+.mf{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+.toasts{position:fixed;top:12px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;min-width:220px;animation:ti .25s ease;}
+@keyframes ti{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+.toast.s{border-left:3px solid var(--grn);}
+.toast.e{border-left:3px solid var(--red);}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;}
+.st-ic{font-size:24px;margin-bottom:8px;}
+.st-v{font-size:22px;font-weight:800;}
+.st-l{font-size:12px;color:var(--sub);margin-top:2px;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.knowledge-item{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+.ki-icon{font-size:22px;flex-shrink:0;}
+.ki-ttl{font-weight:600;font-size:13px;margin-bottom:3px;}
+.ki-txt{font-size:11px;color:var(--sub);line-height:1.6;}
+.ki-tag{display:inline-block;background:var(--priL);color:var(--pri);font-size:10px;padding:1px 6px;border-radius:10px;margin-right:4px;}
+.upload-area{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:all .2s;}
+.upload-area:hover{border-color:var(--pri);background:var(--priL);}
+.upload-area input{display:none;}
+.upload-ic{font-size:36px;margin-bottom:8px;}
+.upload-ttl{font-weight:600;font-size:14px;margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--sub);}
+.preview-img{width:80px;height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--line);}
+.voice-preview{background:var(--bg3);border-radius:8px;padding:12px;margin-top:10px;}
+.voice-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.voice-bar label{width:120px;font-size:12px;color:var(--sub);}
+.voice-bar input[type=range]{flex:1;}
+.voice-bar span{width:30px;text-align:right;font-size:12px;font-weight:600;}
+.sc-item{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;}
+.sc-kw{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.sc-kw span{background:var(--priL);color:var(--pri);font-size:11px;padding:2px 8px;border-radius:10px;}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <div class="sb-logo">
+      <div class="sb-mark">🤖</div>
+      <div><div class="sb-name">Admin Panel</div><div class="sb-sub">AI Receptionist</div></div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-g">Tổng Quan</div>
+      <div class="sl on" onclick="goPg('dashboard')"><span class="i">📊</span>Dashboard</div>
+      <div class="sb-g">Đào Tạo AI</div>
+      <div class="sl" onclick="goPg('knowledge')"><span class="i">🧠</span>Kiến thức & Kịch bản</div>
+      <div class="sl" onclick="goPg('products')"><span class="i">🏷️</span>Sản phẩm & Dịch vụ</div>
+      <div class="sl" onclick="goPg('upload')"><span class="i">📎</span>Upload tài liệu</div>
+      <div class="sb-g">Nhận Diện</div>
+      <div class="sl" onclick="goPg('guests')"><span class="i">🧑</span>Khách đã biết</div>
+      <div class="sl" onclick="goPg('employees')"><span class="i">👔</span>Nhân viên</div>
+      <div class="sb-g">Cài Đặt</div>
+      <div class="sl" onclick="goPg('voice')"><span class="i">🔊</span>Giọng nói & Avatar</div>
+      <div class="sl" onclick="goPg('settings')"><span class="i">⚙️</span>Cài đặt hệ thống</div>
+      <div class="sl" onclick="goPg('history')"><span class="i">📜</span>Lịch sử trò chuyện</div>
+    </nav>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-ttl" id="pgTtl">Dashboard</div>
+      <div class="bg">
+        <a href="receptionist.html" target="_blank"><button class="btn btn-grn btn-sm">🤖 Mở Lễ Tân AI</button></a>
+        <button class="btn btn-pri btn-sm" onclick="saveAll()">💾 Lưu tất cả</button>
+      </div>
+    </div>
+    <div class="con">
+
+      <!-- DASHBOARD -->
+      <div class="page on" id="pg-dashboard">
+        <div class="ph"><div class="ph-ttl">Dashboard</div></div>
+        <div class="sg" id="dashStats"></div>
+        <div class="two">
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">🧠 Kiến thức đã đào tạo</div><button class="btn btn-pri btn-sm" onclick="goPg('knowledge')">Quản lý</button></div>
+            <div class="cb" id="dashKnow"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">📜 Cuộc trò chuyện gần đây</div></div>
+            <div class="cb" id="dashConv"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ch-ttl">⚡ Bắt đầu nhanh</div></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+              <div style="background:var(--priL);border-radius:8px;padding:14px;text-align:center;cursor:pointer" onclick="goPg('knowledge')"><div style="font-size:28px;margin-bottom:6px">🧠</div><div style="font-weight:600;font-size:13px">Thêm kịch bản</div></div>
+              <div style="background:var(--grnL);border-radius:8px;padding:14px;text-align:center;cursor:pointer" onclick="goPg('products')"><div style="font-size:28px;margin-bottom:6px">🏷️</div><div style="font-weight:600;font-size:13px">Thêm sản phẩm</div></div>
+              <div style="background:var(--purL);border-radius:8px;padding:14px;text-align:center;cursor:pointer" onclick="goPg('upload')"><div style="font-size:28px;margin-bottom:6px">📎</div><div style="font-weight:600;font-size:13px">Upload tài liệu</div></div>
+              <div style="background:var(--ambL);border-radius:8px;padding:14px;text-align:center;cursor:pointer" onclick="goPg('voice')"><div style="font-size:28px;margin-bottom:6px">🔊</div><div style="font-weight:600;font-size:13px">Cài giọng nói</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KNOWLEDGE & SCENARIOS -->
+      <div class="page" id="pg-knowledge">
+        <div class="ph">
+          <div><div class="ph-ttl">Kiến Thức & Kịch Bản</div><div class="ph-sub">Đào tạo AI biết cách trả lời</div></div>
+          <div class="bg">
+            <button class="btn btn-ghost btn-sm" onclick="openM('mScenario')">➕ Thêm kịch bản</button>
+            <button class="btn btn-pri btn-sm" onclick="openM('mKnowledge')">➕ Thêm kiến thức</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><div class="ch-ttl">📋 Kịch bản hội thoại</div><div class="ch-sub">Từ khóa → Câu trả lời cố định</div></div>
+          <div class="cb" id="scenarioList"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ch-ttl">🧠 Kiến thức nền</div><div class="ch-sub">AI sẽ dùng để trả lời câu hỏi</div></div>
+          <div class="cb" id="knowledgeList"></div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div class="page" id="pg-products">
+        <div class="ph">
+          <div><div class="ph-ttl">Sản Phẩm & Dịch Vụ</div><div class="ph-sub">Hiển thị khi AI đề cập</div></div>
+          <button class="btn btn-pri btn-sm" onclick="openM('mProduct')">➕ Thêm sản phẩm</button>
+        </div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>Hình ảnh</th><th>Tên sản phẩm</th><th>Mô tả</th><th>Giá</th><th>Từ khóa</th><th>Thao tác</th></tr></thead>
+            <tbody id="productTbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- UPLOAD -->
+      <div class="page" id="pg-upload">
+        <div class="ph"><div><div class="ph-ttl">Upload Tài Liệu</div><div class="ph-sub">PDF, ảnh, text để AI học</div></div></div>
+        <div class="two">
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">📎 Upload file</div></div>
+            <div class="cb">
+              <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" onchange="handleUpload(this)">
+                <div class="upload-ic">📂</div>
+                <div class="upload-ttl">Kéo thả hoặc nhấn để chọn file</div>
+                <div class="upload-sub">Hỗ trợ: PDF, TXT, PNG, JPG</div>
+              </div>
+              <div id="uploadStatus" style="margin-top:12px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">✍️ Nhập text trực tiếp</div></div>
+            <div class="cb">
+              <div class="fg"><label>Tiêu đề</label><input id="textTitle" placeholder="VD: Thông tin công ty, Quy trình..."></div>
+              <div class="fg"><label>Nội dung</label><textarea id="textContent" style="height:150px" placeholder="Nhập kiến thức bạn muốn AI học..."></textarea></div>
+              <div class="fg"><label>Danh mục</label>
+                <select id="textCat">
+                  <option value="company">Thông tin công ty</option>
+                  <option value="product">Sản phẩm/Dịch vụ</option>
+                  <option value="faq">FAQ</option>
+                  <option value="policy">Chính sách</option>
+                  <option value="other">Khác</option>
+                </select>
+              </div>
+              <button class="btn btn-pri" onclick="addTextKnowledge()" style="width:100%">➕ Thêm kiến thức</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ch-ttl">📚 Tài liệu đã tải</div></div>
+          <div class="cb" id="uploadedList"></div>
+        </div>
+      </div>
+
+      <!-- GUESTS -->
+      <div class="page" id="pg-guests">
+        <div class="ph">
+          <div><div class="ph-ttl">Khách Đã Nhận Diện</div><div class="ph-sub">Lần sau gặp sẽ chào đúng tên</div></div>
+          <button class="btn btn-pri btn-sm" onclick="openM('mGuest')">➕ Thêm khách</button>
+        </div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>Khách</th><th>Số lần ghé</th><th>Lần cuối</th><th>Ghi chú</th><th>Khuôn mặt</th><th>Thao tác</th></tr></thead>
+            <tbody id="guestTbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- EMPLOYEES -->
+      <div class="page" id="pg-employees">
+        <div class="ph"><div class="ph-ttl">Nhân Viên</div><div class="ph-sub">Lấy từ hệ thống HR</div></div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>Nhân viên</th><th>Mã NV</th><th>Phòng ban</th><th>Khuôn mặt</th></tr></thead>
+            <tbody id="empTbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- VOICE & AVATAR -->
+      <div class="page" id="pg-voice">
+        <div class="ph"><div class="ph-ttl">Giọng Nói & Avatar</div></div>
+        <div class="two">
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">🔊 Cài đặt giọng nói</div></div>
+            <div class="cb">
+              <div class="fg"><label>Ngôn ngữ</label>
+                <select id="voiceLang">
+                  <option value="vi-VN">Tiếng Việt</option>
+                  <option value="en-US">Tiếng Anh</option>
+                </select>
+              </div>
+              <div class="voice-preview">
+                <div class="voice-bar"><label>Tốc độ nói</label><input type="range" id="vRate" min="0.5" max="2" step="0.1" value="1.0" oninput="document.getElementById('vRateV').textContent=this.value"><span id="vRateV">1.0</span></div>
+                <div class="voice-bar"><label>Cao độ</label><input type="range" id="vPitch" min="0.5" max="2" step="0.1" value="1.1" oninput="document.getElementById('vPitchV').textContent=this.value"><span id="vPitchV">1.1</span></div>
+                <div class="voice-bar"><label>Âm lượng</label><input type="range" id="vVol" min="0" max="1" step="0.1" value="1" oninput="document.getElementById('vVolV').textContent=this.value"><span id="vVolV">1.0</span></div>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="testVoice()">🔊 Test giọng nói</button>
+              <button class="btn btn-pri" style="margin-top:8px;width:100%" onclick="saveVoiceSettings()">💾 Lưu cài đặt</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">🤖 Cài đặt lời chào</div></div>
+            <div class="cb">
+              <div class="fg"><label>Lời chào khách lạ</label><textarea id="greetUnknown" style="height:70px">Xin chào! Chào mừng bạn đến với Robominh! Tôi có thể giúp gì cho bạn?</textarea></div>
+              <div class="fg"><label>Lời chào nhân viên</label><textarea id="greetEmployee" style="height:70px">Chào [TÊN]! Chúc bạn ngày làm việc hiệu quả!</textarea></div>
+              <div class="fg"><label>Lời chào khách quen</label><textarea id="greetKnown" style="height:70px">Xin chào [TÊN]! Rất vui được gặp lại bạn!</textarea></div>
+              <button class="btn btn-pri" style="width:100%" onclick="saveGreetings()">💾 Lưu lời chào</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="pg-settings">
+        <div class="ph"><div class="ph-ttl">Cài Đặt Hệ Thống</div></div>
+        <div class="two">
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">🔑 API Keys</div></div>
+            <div class="cb">
+              <div class="fg"><label>Groq API Key</label><input type="password" id="sGroq" placeholder="gsk_..."></div>
+              <div class="fg"><label>Server URL</label><input id="sServer" placeholder="https://xxx.onrender.com"></div>
+              <button class="btn btn-pri" onclick="saveSettings()" style="width:100%">💾 Lưu cài đặt</button>
+              <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="testConn()">🔍 Test kết nối</button>
+              <div id="testResult" style="font-size:12px;color:var(--sub);margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ch-ttl">🏢 Thông tin công ty</div></div>
+            <div class="cb">
+              <div class="fg"><label>Tên công ty</label><input id="sCompany" value="Công ty Robominh"></div>
+              <div class="fg"><label>Mô tả ngắn</label><textarea id="sDesc" style="height:80px">Công ty công nghệ Robominh chuyên cung cấp giải pháp AI và tự động hóa</textarea></div>
+              <div class="fg"><label>Địa chỉ</label><input id="sAddr"></div>
+              <div class="fg"><label>Hotline</label><input id="sHotline"></div>
+              <button class="btn btn-pri" onclick="saveCompany()" style="width:100%">💾 Lưu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="page" id="pg-history">
+        <div class="ph"><div class="ph-ttl">Lịch Sử Trò Chuyện</div></div>
+        <div class="card">
+          <div class="tw"><table>
+            <thead><tr><th>Thời gian</th><th>Khách</th><th>Nội dung</th><th>Phản hồi AI</th></tr></thead>
+            <tbody id="histTbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toasts" id="toasts"></div>
+
+<!-- MODALS -->
+<div class="overlay" id="mKnowledge">
+  <div class="modal">
+    <div class="mh"><div class="mh-ttl">🧠 Thêm kiến thức</div><button class="mc" onclick="closeM('mKnowledge')">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>Tiêu đề *</label><input id="kTitle" placeholder="VD: Giờ làm việc, Địa chỉ..."></div>
+      <div class="fg"><label>Nội dung *</label><textarea id="kContent" style="height:120px" placeholder="Nhập thông tin AI cần biết..."></textarea></div>
+      <div class="fg"><label>Danh mục</label>
+        <select id="kCat"><option value="general">Chung</option><option value="company">Công ty</option><option value="product">Sản phẩm</option><option value="faq">FAQ</option><option value="policy">Chính sách</option></select>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mKnowledge')">Hủy</button><button class="btn btn-pri" onclick="saveKnowledge()">💾 Lưu</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="mScenario">
+  <div class="modal">
+    <div class="mh"><div class="mh-ttl">📋 Thêm kịch bản</div><button class="mc" onclick="closeM('mScenario')">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>Tên kịch bản *</label><input id="scName" placeholder="VD: Hỏi về giờ làm việc"></div>
+      <div class="fg"><label>Từ khóa kích hoạt (cách nhau bằng dấu phẩy) *</label><input id="scKeys" placeholder="giờ làm việc, giờ mở cửa, mấy giờ..."></div>
+      <div class="fg"><label>Câu trả lời *</label><textarea id="scResp" style="height:100px" placeholder="Câu trả lời AI sẽ đọc..."></textarea></div>
+      <div class="fg"><label>Sản phẩm hiển thị kèm (tùy chọn)</label><input id="scProd" placeholder="Tên sản phẩm (nếu có)"></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mScenario')">Hủy</button><button class="btn btn-pri" onclick="saveScenario()">💾 Lưu</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="mProduct">
+  <div class="modal">
+    <div class="mh"><div class="mh-ttl">🏷️ Thêm sản phẩm</div><button class="mc" onclick="closeM('mProduct')">✕</button></div>
+    <div class="mb">
+      <div class="fg2">
+        <div class="fg"><label>Tên sản phẩm *</label><input id="pName"></div>
+        <div class="fg"><label>Giá</label><input id="pPrice" placeholder="VD: 500.000đ"></div>
+      </div>
+      <div class="fg"><label>Mô tả</label><textarea id="pDesc" style="height:80px"></textarea></div>
+      <div class="fg"><label>Từ khóa (cách nhau bằng phẩy)</label><input id="pKeys" placeholder="sản phẩm a, dịch vụ b..."></div>
+      <div class="fg"><label>Icon (emoji)</label><input id="pIcon" placeholder="🏷️" style="width:80px"></div>
+      <div class="fg"><label>URL hình ảnh (tùy chọn)</label><input id="pImg" placeholder="https://..."></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mProduct')">Hủy</button><button class="btn btn-pri" onclick="saveProduct()">💾 Lưu</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="mGuest">
+  <div class="modal">
+    <div class="mh"><div class="mh-ttl">🧑 Thêm khách</div><button class="mc" onclick="closeM('mGuest')">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>Họ tên *</label><input id="gName"></div>
+      <div class="fg"><label>Công ty / Đơn vị</label><input id="gCompany"></div>
+      <div class="fg"><label>Điện thoại</label><input id="gPhone"></div>
+      <div class="fg"><label>Ghi chú</label><textarea id="gNote" style="height:70px" placeholder="VD: Khách hàng VIP, đối tác..."></textarea></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mGuest')">Hủy</button><button class="btn btn-pri" onclick="saveGuest()">💾 Lưu</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const SERVER = localStorage.getItem('admin_server') || 'https://letanrobominh-server.onrender.com';
+const api = {
+  get:  async p => { const r=await fetch(SERVER+p); return r.json(); },
+  post: async (p,d) => { const r=await fetch(SERVER+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); },
+  del:  async p => { const r=await fetch(SERVER+p,{method:'DELETE'}); return r.json(); },
+};
+
+// Local data (sync lên server khi save)
+let D = {
+  knowledge:  JSON.parse(localStorage.getItem('ad_knowledge')||'[]'),
+  scenarios:  JSON.parse(localStorage.getItem('ad_scenarios')||'[]'),
+  products:   JSON.parse(localStorage.getItem('ad_products')||'[]'),
+  guests:     JSON.parse(localStorage.getItem('ad_guests')||'{}'),
+};
+
+function save(key) { localStorage.setItem('ad_'+key, JSON.stringify(D[key])); }
+function genId() { return Date.now()+Math.floor(Math.random()*999); }
+
+function toast(msg,type='s'){const w=document.getElementById('toasts');const t=document.createElement('div');t.className=`toast ${type}`;const icons={s:'✅',e:'❌',i:'ℹ️'};t.innerHTML=`<span>${icons[type]}</span><span style="font-size:13px;font-weight:500">${msg}</span>`;w.appendChild(t);setTimeout(()=>t.remove(),3000);}
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('overlay'))e.target.classList.remove('on');});
+
+const titles={dashboard:'Dashboard',knowledge:'Kiến Thức & Kịch Bản',products:'Sản Phẩm & Dịch Vụ',upload:'Upload Tài Liệu',guests:'Khách Đã Nhận Diện',employees:'Nhân Viên',voice:'Giọng Nói & Avatar',settings:'Cài Đặt',history:'Lịch Sử Trò Chuyện'};
+function goPg(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.sl').forEach(x=>x.classList.remove('on'));
+  document.getElementById('pg-'+p).classList.add('on');
+  document.querySelector(`.sl[onclick="goPg('${p}')"]`)?.classList.add('on');
+  document.getElementById('pgTtl').textContent=titles[p]||p;
+  const renders={dashboard:renderDash,knowledge:renderKnowledge,products:renderProducts,guests:renderGuests,employees:renderEmps,history:renderHistory,upload:renderUploaded};
+  if(renders[p])renders[p]();
+}
+
+/* DASHBOARD */
+function renderDash(){
+  document.getElementById('dashStats').innerHTML=[
+    {ic:'🧠',l:'Kiến thức',v:D.knowledge.length},
+    {ic:'📋',l:'Kịch bản',v:D.scenarios.length},
+    {ic:'🏷️',l:'Sản phẩm',v:D.products.length},
+    {ic:'🧑',l:'Khách biết',v:Object.keys(D.guests).length},
+  ].map(s=>`<div class="stat"><div class="st-ic">${s.ic}</div><div class="st-v">${s.v}</div><div class="st-l">${s.l}</div></div>`).join('');
+  document.getElementById('dashKnow').innerHTML=D.knowledge.slice(0,4).map(k=>`<div class="knowledge-item"><div class="ki-icon">📄</div><div><div class="ki-ttl">${k.title}</div><div class="ki-txt">${(k.content||'').slice(0,80)}...</div></div></div>`).join('')||'<div style="text-align:center;color:var(--sub);font-size:13px;padding:16px">Chưa có kiến thức. <a href="#" onclick="goPg(\'knowledge\')" style="color:var(--pri)">Thêm ngay</a></div>';
+  document.getElementById('dashConv').innerHTML='<div style="text-align:center;color:var(--sub);font-size:13px;padding:16px">Cuộc trò chuyện sẽ hiển thị ở đây</div>';
+}
+
+/* KNOWLEDGE */
+function renderKnowledge(){
+  document.getElementById('scenarioList').innerHTML=D.scenarios.length?D.scenarios.map(s=>`<div class="sc-item"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:600;font-size:13px">${s.name}</div><div style="font-size:12px;color:var(--sub);margin-top:3px">${(s.response||'').slice(0,80)}...</div></div><button class="btn btn-red btn-xs" onclick="delScenario(${s.id})">🗑️</button></div><div class="sc-kw">${(s.keywords||[]).map(k=>`<span>${k}</span>`).join('')}</div></div>`).join(''):'<div style="text-align:center;color:var(--sub);padding:20px;font-size:13px">Chưa có kịch bản nào</div>';
+  document.getElementById('knowledgeList').innerHTML=D.knowledge.length?D.knowledge.map(k=>`<div class="knowledge-item"><div class="ki-icon">📄</div><div style="flex:1"><div class="ki-ttl">${k.title}<span class="ki-tag" style="margin-left:6px">${k.category||'chung'}</span></div><div class="ki-txt">${(k.content||'').slice(0,100)}...</div></div><button class="btn btn-red btn-xs" onclick="delKnowledge(${k.id})" style="flex-shrink:0">🗑️</button></div>`).join(''):'<div style="text-align:center;color:var(--sub);padding:20px;font-size:13px">Chưa có kiến thức nào</div>';
+}
+function saveKnowledge(){
+  const title=document.getElementById('kTitle').value.trim();const content=document.getElementById('kContent').value.trim();
+  if(!title||!content){toast('Điền đầy đủ','e');return;}
+  D.knowledge.push({id:genId(),title,content,category:document.getElementById('kCat').value,created:new Date().toISOString()});
+  save('knowledge');closeM('mKnowledge');renderKnowledge();syncToServer();toast('Đã thêm kiến thức ✅');
+  document.getElementById('kTitle').value='';document.getElementById('kContent').value='';
+}
+function delKnowledge(id){D.knowledge=D.knowledge.filter(k=>k.id!==id);save('knowledge');renderKnowledge();syncToServer();toast('Đã xóa','i');}
+function saveScenario(){
+  const name=document.getElementById('scName').value.trim();const keys=document.getElementById('scKeys').value;const resp=document.getElementById('scResp').value.trim();
+  if(!name||!resp){toast('Điền đầy đủ','e');return;}
+  const keywords=keys.split(',').map(k=>k.trim()).filter(Boolean);
+  D.scenarios.push({id:genId(),name,keywords,response:resp,product:document.getElementById('scProd').value.trim(),created:new Date().toISOString()});
+  save('scenarios');closeM('mScenario');renderKnowledge();syncToServer();toast('Đã thêm kịch bản ✅');
+  ['scName','scKeys','scResp','scProd'].forEach(id=>document.getElementById(id).value='');
+}
+function delScenario(id){D.scenarios=D.scenarios.filter(s=>s.id!==id);save('scenarios');renderKnowledge();syncToServer();toast('Đã xóa','i');}
+
+/* PRODUCTS */
+function renderProducts(){
+  document.getElementById('productTbl').innerHTML=D.products.map(p=>`<tr><td><span style="font-size:24px">${p.icon||'🏷️'}</span></td><td style="font-weight:600">${p.name}</td><td style="color:var(--sub);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.desc||''}</td><td style="font-weight:600;color:#D97706">${p.price||'—'}</td><td><div style="display:flex;flex-wrap:wrap;gap:3px">${(p.keywords||[]).map(k=>`<span style="background:var(--priL);color:var(--pri);font-size:10px;padding:1px 6px;border-radius:10px">${k}</span>`).join('')}</div></td><td><button class="btn btn-red btn-xs" onclick="delProduct(${p.id})">🗑️</button></td></tr>`).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--sub);padding:20px">Chưa có sản phẩm</td></tr>`;
+}
+function saveProduct(){
+  const name=document.getElementById('pName').value.trim();if(!name){toast('Nhập tên','e');return;}
+  const keywords=document.getElementById('pKeys').value.split(',').map(k=>k.trim()).filter(Boolean);
+  D.products.push({id:genId(),name,desc:document.getElementById('pDesc').value.trim(),price:document.getElementById('pPrice').value.trim(),icon:document.getElementById('pIcon').value.trim()||'🏷️',image:document.getElementById('pImg').value.trim(),keywords,created:new Date().toISOString()});
+  save('products');closeM('mProduct');renderProducts();syncToServer();toast('Đã thêm sản phẩm ✅');
+  ['pName','pDesc','pPrice','pIcon','pImg','pKeys'].forEach(id=>document.getElementById(id).value='');
+}
+function delProduct(id){D.products=D.products.filter(p=>p.id!==id);save('products');renderProducts();syncToServer();toast('Đã xóa','i');}
+
+/* UPLOAD */
+async function handleUpload(input){
+  const files=input.files;const status=document.getElementById('uploadStatus');
+  status.innerHTML='⏳ Đang xử lý...';
+  for(const file of files){
+    if(file.type==='text/plain'){
+      const text=await file.text();
+      D.knowledge.push({id:genId(),title:file.name,content:text,category:'upload',created:new Date().toISOString()});
+    } else {
+      D.knowledge.push({id:genId(),title:file.name,content:`[File: ${file.name} - ${(file.size/1024).toFixed(0)}KB]`,category:'upload',created:new Date().toISOString()});
+    }
+  }
+  save('knowledge');syncToServer();
+  status.innerHTML=`✅ Đã thêm ${files.length} file vào kiến thức`;
+  toast(`Đã upload ${files.length} file ✅`);
+  renderUploaded();
+}
+function addTextKnowledge(){
+  const title=document.getElementById('textTitle').value.trim();const content=document.getElementById('textContent').value.trim();
+  if(!title||!content){toast('Điền đầy đủ','e');return;}
+  D.knowledge.push({id:genId(),title,content,category:document.getElementById('textCat').value,created:new Date().toISOString()});
+  save('knowledge');syncToServer();toast('Đã thêm kiến thức ✅');
+  document.getElementById('textTitle').value='';document.getElementById('textContent').value='';
+  renderUploaded();
+}
+function renderUploaded(){
+  document.getElementById('uploadedList').innerHTML=D.knowledge.map(k=>`<div class="knowledge-item"><div class="ki-icon">📄</div><div style="flex:1"><div class="ki-ttl">${k.title}<span class="ki-tag">${k.category}</span></div><div class="ki-txt">${new Date(k.created).toLocaleString('vi-VN')}</div></div><button class="btn btn-red btn-xs" onclick="delKnowledge(${k.id})" style="flex-shrink:0">🗑️</button></div>`).join('')||'<div style="text-align:center;color:var(--sub);padding:20px">Chưa có file nào</div>';
+}
+
+/* GUESTS */
+function renderGuests(){
+  const gs=Object.values(D.guests);
+  document.getElementById('guestTbl').innerHTML=gs.map(g=>`<tr><td><div style="font-weight:600">${g.name}</div><div style="font-size:11px;color:var(--sub)">${g.company||''}</div></td><td>${g.visits||1}</td><td>${g.lastSeen?new Date(g.lastSeen).toLocaleDateString('vi-VN'):'—'}</td><td style="color:var(--sub)">${g.note||''}</td><td>${g.descriptors?.length?`<span class="bx bx-g">✅ ${g.descriptors.length} ảnh</span>`:'<span class="bx" style="background:var(--line2);color:var(--sub)">Chưa đăng ký</span>'}</td><td><button class="btn btn-red btn-xs" onclick="delGuest('${g.id}')">🗑️</button></td></tr>`).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--sub);padding:20px">Chưa có khách</td></tr>`;
+}
+function saveGuest(){
+  const name=document.getElementById('gName').value.trim();if(!name){toast('Nhập tên','e');return;}
+  const id='guest_'+genId();
+  D.guests[id]={id,name,company:document.getElementById('gCompany').value.trim(),phone:document.getElementById('gPhone').value.trim(),note:document.getElementById('gNote').value.trim(),visits:0,created:new Date().toISOString()};
+  save('guests');closeM('mGuest');renderGuests();toast('Đã thêm khách ✅');
+  ['gName','gCompany','gPhone','gNote'].forEach(id=>document.getElementById(id).value='');
+}
+function delGuest(id){delete D.guests[id];save('guests');renderGuests();toast('Đã xóa','i');}
+
+/* EMPLOYEES */
+async function renderEmps(){
+  try{
+    const emps=await api.get('/api/employees');
+    const faceData=await api.get('/api/face/data');
+    document.getElementById('empTbl').innerHTML=emps.map(e=>`<tr><td><div style="font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--sub)">${e.email}</div></td><td>${e.code}</td><td>${e.pos||'—'}</td><td>${faceData[e.id]?`<span class="bx bx-g">✅ ${faceData[e.id].count||0} ảnh</span>`:'<span class="bx" style="background:var(--line2);color:var(--sub)">Chưa đăng ký</span>'}</td></tr>`).join('');
+  }catch{document.getElementById('empTbl').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--sub);padding:20px">Không kết nối được server HR</td></tr>';}
+}
+
+/* HISTORY */
+function renderHistory(){
+  document.getElementById('histTbl').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--sub);padding:20px">Lịch sử sẽ được lưu khi AI lễ tân hoạt động</td></tr>';
+}
+
+/* VOICE */
+function testVoice(){
+  const utter=new SpeechSynthesisUtterance('Xin chào! Tôi là trợ lý AI lễ tân của Robominh.');
+  utter.lang=document.getElementById('voiceLang').value;
+  utter.rate=+document.getElementById('vRate').value;
+  utter.pitch=+document.getElementById('vPitch').value;
+  utter.volume=+document.getElementById('vVol').value;
+  speechSynthesis.speak(utter);
+}
+function saveVoiceSettings(){
+  const s={lang:document.getElementById('voiceLang').value,rate:+document.getElementById('vRate').value,pitch:+document.getElementById('vPitch').value,vol:+document.getElementById('vVol').value};
+  localStorage.setItem('voice_settings',JSON.stringify(s));syncToServer();toast('Đã lưu cài đặt giọng ✅');
+}
+function saveGreetings(){
+  const g={unknown:document.getElementById('greetUnknown').value,employee:document.getElementById('greetEmployee').value,known:document.getElementById('greetKnown').value};
+  localStorage.setItem('greetings',JSON.stringify(g));syncToServer();toast('Đã lưu lời chào ✅');
+}
+
+/* SETTINGS */
+async function testConn(){
+  const el=document.getElementById('testResult');el.textContent='⏳ Đang kiểm tra...';
+  try{const r=await fetch(document.getElementById('sServer').value+'/api/status');const d=await r.json();el.textContent=d.status==='ok'?'✅ Kết nối OK!':'⚠️ Server bất thường';el.style.color=d.status==='ok'?'var(--grn)':'var(--amb)';}
+  catch{el.textContent='❌ Không kết nối được';el.style.color='var(--red)';}
+}
+function saveSettings(){
+  const groq=document.getElementById('sGroq').value.trim();const srv=document.getElementById('sServer').value.trim();
+  if(groq)localStorage.setItem('groq_key',groq);if(srv)localStorage.setItem('admin_server',srv);
+  syncToServer();toast('Đã lưu cài đặt ✅');
+}
+function saveCompany(){
+  const info={name:document.getElementById('sCompany').value,desc:document.getElementById('sDesc').value,addr:document.getElementById('sAddr').value,hotline:document.getElementById('sHotline').value};
+  localStorage.setItem('company_info',JSON.stringify(info));syncToServer();toast('Đã lưu thông tin công ty ✅');
+}
+
+/* SYNC TO SERVER */
+async function syncToServer(){
+  try{
+    const vs=JSON.parse(localStorage.getItem('voice_settings')||'{}');
+    const greet=JSON.parse(localStorage.getItem('greetings')||'{}');
+    const companyInfo=JSON.parse(localStorage.getItem('company_info')||'{}');
+    await api.post('/api/knowledge',{items:D.knowledge,scenarios:D.scenarios,products:D.products,guests:D.guests,voiceSettings:vs,greetings:greet,companyInfo,groqKey:localStorage.getItem('groq_key')||''});
+  }catch(e){console.warn('Sync fail:',e.message);}
+}
+function saveAll(){syncToServer();toast('Đã đồng bộ lên server ✅');}
+
+/* INIT */
+renderDash();
+const savedServer=localStorage.getItem('admin_server');if(savedServer)document.getElementById('sServer').value=savedServer;
+const savedGroq=localStorage.getItem('groq_key');if(savedGroq)document.getElementById('sGroq').value=savedGroq;
+const vs=JSON.parse(localStorage.getItem('voice_settings')||'{}');
+if(vs.rate)document.getElementById('vRate').value=vs.rate;
+if(vs.pitch)document.getElementById('vPitch').value=vs.pitch;
+const greet=JSON.parse(localStorage.getItem('greetings')||'{}');
+if(greet.unknown)document.getElementById('greetUnknown').value=greet.unknown;
+if(greet.employee)document.getElementById('greetEmployee').value=greet.employee;
+if(greet.known)document.getElementById('greetKnown').value=greet.known;
+</script>
+</body>
+</html>
