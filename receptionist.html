@@ -249,7 +249,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
    CẤU HÌNH — SỬA Ở ĐÂY
 ══════════════════════════════════ */
 const CFG = {
-  SERVER:   'https://THAY_BANG_LINK_RENDER.onrender.com',
+  SERVER:   'https://letanrobominh-server.onrender.com',
   GROQ_KEY: '', // Để trống — tự lấy từ server
   LANG:     'vi-VN',
   VOICE_RATE:  1.0,
@@ -345,7 +345,7 @@ async function loadConfig() {
     if (cfg.voiceRate) CFG.VOICE_RATE = cfg.voiceRate;
     if (cfg.voicePitch) CFG.VOICE_PITCH = cfg.voicePitch;
   } catch(e) {
-    S.groqKey = localStorage.getItem('groq_key') || '';
+    S.groqKey = localStorage.getItem('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') || '';
   }
 }
 async function loadFaceData() {
